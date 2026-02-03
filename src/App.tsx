@@ -1,4 +1,4 @@
-// src/App.tsx - Updated layout
+// src/App.tsx - Updated layout with 60/40 split
 import React, { useState, useEffect } from 'react';
 import Dashboard from './components/Dashboard';
 import HistoryTable from './components/HistoryTable';
@@ -111,39 +111,28 @@ const App: React.FC = () => {
   const currentProgress = calculateDailyProgress(tasks);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-gray-800">
-      <header className="bg-gradient-to-r from-indigo-600 to-purple-700 text-white shadow-lg">
-        <div className="px-8 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900">
+      <header className="bg-gradient-to-r from-indigo-700 to-purple-800 text-white shadow-2xl">
+        <div className="px-6 py-5">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="text-center md:text-left mb-4 md:mb-0">
-              <h1 className="text-4xl font-bold tracking-tight">Discipline Tracker</h1>
-              <p className="text-indigo-100 mt-2 text-lg">Track Consistency • Build Discipline</p>
+            <div className="text-center md:text-left mb-3 md:mb-0">
+              <h1 className="text-3xl font-bold tracking-tight">DISCIPLINE TRACKER</h1>
+              <p className="text-indigo-200 mt-1 text-sm">Consistency • Execution • Discipline</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-lg text-indigo-100 font-medium">Daily Weights</div>
-              <div className="text-sm text-white font-semibold mt-1">
-                15% • 25% • 20% • 25% • 15%
+            <div className="bg-white/15 backdrop-blur-sm rounded-lg p-3 text-center">
+              <div className="text-xs text-indigo-200 font-medium">DAILY WEIGHTS</div>
+              <div className="text-sm text-white font-bold mt-0.5">
+                15 • 25 • 20 • 25 • 15
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="px-8 py-8">
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Left Column - Tasks (Full Height) */}
-          <div className="xl:col-span-2">
-            <TaskManager
-              tasks={tasks}
-              onToggleTask={toggleTask}
-              progress={currentProgress}
-              date={currentDate}
-              isSaved={isSaved}
-            />
-          </div>
-          
-          {/* Right Column - Dashboard & History */}
-          <div className="space-y-8">
+      <main className="px-6 py-6">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+          {/* Left Column - Dashboard & History (60% width) */}
+          <div className="xl:col-span-7 space-y-6">
             <Dashboard
               currentDate={currentDate}
               progress={currentProgress}
@@ -158,6 +147,17 @@ const App: React.FC = () => {
               history={history}
               currentDate={currentDate}
               onDateSelect={setCurrentDate}
+            />
+          </div>
+          
+          {/* Right Column - Tasks (40% width) */}
+          <div className="xl:col-span-5">
+            <TaskManager
+              tasks={tasks}
+              onToggleTask={toggleTask}
+              progress={currentProgress}
+              date={currentDate}
+              isSaved={isSaved}
             />
           </div>
         </div>

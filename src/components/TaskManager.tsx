@@ -1,4 +1,4 @@
-// src/components/TaskManager.tsx - Clean design without emojis
+// src/components/TaskManager.tsx - Completely redesigned with hour checkboxes
 import React, { useState } from 'react';
 import { Task } from '../types';
 
@@ -18,209 +18,304 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onToggleTask, progress
     return day === 0 || day === 6;
   };
 
-  const handleHoursChange = (taskId: string, value: string) => {
+  const handleHourToggle = (taskId: string, hour: number) => {
     if (isSaved) return;
     
-    const numValue = parseInt(value) || 0;
-    setHours(prev => ({ ...prev, [taskId]: numValue }));
+    const currentTaskHours = hours[taskId] || 0;
+    let newHours = currentTaskHours;
+    
+    if (currentTaskHours === hour) {
+      newHours = 0;
+    } else {
+      newHours = hour;
+    }
+    
+    setHours(prev => ({ ...prev, [taskId]: newHours }));
     
     const task = tasks.find(t => t.id === taskId);
-    if (task?.minHours && numValue >= task.minHours) {
-      onToggleTask(taskId);
-    } else if (task?.minHours && numValue < task.minHours) {
-      if (task.completed) {
-        onToggleTask(taskId);
-      }
+    if (task?.minHours && newHours >= task.minHours) {
+      if (!task.completed) onToggleTask(taskId);
+    } else if (task?.minHours && newHours < task.minHours) {
+      if (task.completed) onToggleTask(taskId);
     }
   };
 
   const getTaskIcon = (taskId: string) => {
     switch(taskId) {
-      case 'workout': return 'W';
-      case 'outreach': return 'O';
-      case 'project': return 'P';
-      case 'portfolio': return 'S';
-      case 'learning': return 'L';
-      default: return 'T';
+      case 'workout': return (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      );
+      case 'outreach': return (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      );
+      case 'project': return (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+      );
+      case 'portfolio': return (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      );
+      case 'learning': return (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      );
+      default: return (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+      );
+    }
+  };
+
+  const getTaskColor = (taskId: string) => {
+    switch(taskId) {
+      case 'workout': return 'bg-gradient-to-r from-blue-500 to-cyan-500';
+      case 'outreach': return 'bg-gradient-to-r from-emerald-500 to-green-500';
+      case 'project': return 'bg-gradient-to-r from-purple-500 to-pink-500';
+      case 'portfolio': return 'bg-gradient-to-r from-orange-500 to-red-500';
+      case 'learning': return 'bg-gradient-to-r from-indigo-500 to-blue-500';
+      default: return 'bg-gradient-to-r from-gray-600 to-gray-700';
     }
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 h-full">
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-8">
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-200 h-full">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-6">
+        <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Daily Tasks</h2>
-            <p className="text-gray-600 mt-2">Mark tasks as complete or track hours</p>
+            <h2 className="text-2xl font-bold">DAILY TASKS</h2>
+            <p className="text-gray-300 mt-1 text-sm">Complete your daily discipline requirements</p>
           </div>
           <div className="text-right">
-            <div className="text-sm text-gray-500 font-medium">Completed</div>
-            <div className="text-2xl font-bold text-gray-900">
+            <div className="text-3xl font-bold text-white">
               {tasks.filter(t => t.completed).length}/{tasks.length}
             </div>
+            <div className="text-gray-300 text-sm">Completed</div>
           </div>
         </div>
+      </div>
 
-        <div className="space-y-4">
+      <div className="p-6">
+        {/* Tasks List */}
+        <div className="space-y-6">
           {tasks.map(task => {
             const isExcluded = task.isExcluded ? task.isExcluded(new Date(date)) : false;
             const isDisabled = isExcluded || isSaved;
             const showHoursInput = task.minHours !== undefined;
             const currentHours = hours[task.id] || 0;
             const meetsRequirement = showHoursInput ? currentHours >= (task.minHours || 0) : true;
+            const taskColor = getTaskColor(task.id);
             
             return (
               <div
                 key={task.id}
-                className={`p-5 rounded-xl border transition-all ${
+                className={`rounded-xl border transition-all ${
                   task.completed && meetsRequirement
-                    ? 'bg-emerald-50 border-emerald-300' 
-                    : 'bg-gray-50 border-gray-200 hover:border-gray-300'
-                } ${isDisabled ? 'opacity-60' : 'cursor-pointer'}`}
-                onClick={() => !isDisabled && !showHoursInput && onToggleTask(task.id)}
+                    ? 'bg-gradient-to-br from-emerald-50 to-white border-emerald-300 shadow-sm' 
+                    : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                } ${isDisabled ? 'opacity-60' : ''}`}
               >
-                <div className="flex items-start gap-4">
-                  {/* Icon Badge */}
-                  <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold ${
-                    task.completed && meetsRequirement
-                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600'
-                      : 'bg-gradient-to-r from-gray-600 to-gray-700'
-                  }`}>
-                    {getTaskIcon(task.id)}
-                  </div>
-                  
-                  {/* Task Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <h4 className="font-bold text-lg text-gray-900">{task.name}</h4>
-                          <span className="px-2 py-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold rounded">
-                            {task.weight}%
-                          </span>
-                        </div>
-                        <p className="text-gray-600 text-sm mt-1">{task.description}</p>
-                      </div>
-                      
-                      {isExcluded && (
-                        <span className="px-3 py-1 text-xs bg-gray-100 text-gray-600 font-medium rounded-full">
-                          Weekend Excluded
-                        </span>
-                      )}
+                {/* Task Header */}
+                <div className="p-5 border-b border-gray-100">
+                  <div className="flex items-start gap-4">
+                    {/* Icon */}
+                    <div className={`flex-shrink-0 w-12 h-12 rounded-xl ${taskColor} flex items-center justify-center text-white`}>
+                      {getTaskIcon(task.id)}
                     </div>
                     
-                    {/* Hours Input */}
-                    {showHoursInput && !isExcluded && (
-                      <div className="mt-4">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                              <label className="text-sm font-medium text-gray-700">Hours:</label>
-                              <input
-                                type="number"
-                                min="0"
-                                max="24"
-                                value={currentHours}
-                                onChange={(e) => handleHoursChange(task.id, e.target.value)}
-                                disabled={isSaved}
-                                className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            </div>
-                            <div className="text-sm">
-                              {task.minHours && currentHours >= task.minHours ? (
-                                <span className="text-emerald-600 font-semibold flex items-center gap-1">
-                                  ✓ Minimum {task.minHours}h met
-                                </span>
-                              ) : (
-                                <span className="text-amber-600 font-medium">
-                                  Need {task.minHours ? task.minHours - currentHours : 0}h more
-                                </span>
-                              )}
-                            </div>
+                    {/* Task Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-xl font-bold text-gray-900">{task.name}</h3>
+                            <span className={`px-3 py-1 ${taskColor} text-white text-xs font-bold rounded-full`}>
+                              {task.weight}% WEIGHT
+                            </span>
                           </div>
-                          
-                          {/* Progress Bar */}
-                          <div className="w-full md:w-64">
-                            <div className="flex justify-between text-sm text-gray-600 mb-1">
-                              <span>0h</span>
-                              <span>{task.minHours}h required</span>
-                            </div>
-                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full transition-all duration-500 ${
-                                  currentHours >= (task.minHours || 0) 
-                                    ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' 
-                                    : 'bg-gradient-to-r from-blue-500 to-indigo-600'
-                                }`}
-                                style={{ 
-                                  width: `${Math.min((currentHours / (task.minHours || 1)) * 100, 100)}%` 
-                                }}
-                              ></div>
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1 text-center">
-                              {currentHours}/{task.minHours}h completed
-                            </div>
-                          </div>
+                          <p className="text-gray-600 text-sm">{task.description}</p>
                         </div>
+                        
+                        {isExcluded && (
+                          <span className="px-3 py-1 text-xs bg-gray-100 text-gray-600 font-medium rounded-full self-start">
+                            WEEKEND EXCLUDED
+                          </span>
+                        )}
                       </div>
+                    </div>
+                    
+                    {/* Main Checkbox */}
+                    {!showHoursInput && !isExcluded && (
+                      <button
+                        onClick={() => !isDisabled && onToggleTask(task.id)}
+                        disabled={isDisabled}
+                        className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                          task.completed
+                            ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-sm' 
+                            : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
+                        }`}
+                      >
+                        {task.completed ? (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                        )}
+                      </button>
                     )}
                   </div>
-                  
-                  {/* Checkbox */}
-                  <div className="flex-shrink-0 flex items-center justify-center">
-                    <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center ${
-                      task.completed && meetsRequirement
-                        ? 'bg-emerald-500 border-emerald-500' 
-                        : 'border-gray-300'
-                    }`}>
+                </div>
+                
+                {/* Hours Selection - NEW CHECKBOX STYLE */}
+                {showHoursInput && !isExcluded && (
+                  <div className="p-5 bg-gradient-to-r from-gray-50 to-white rounded-b-xl">
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-sm font-semibold text-gray-700">HOURS COMPLETED</div>
+                        <div className={`text-sm font-bold ${meetsRequirement ? 'text-emerald-600' : 'text-amber-600'}`}>
+                          {currentHours}/{task.minHours}h {meetsRequirement ? '✓' : ''}
+                        </div>
+                      </div>
+                      
+                      {/* Hour Checkboxes */}
+                      <div className="flex space-x-3 mb-4">
+                        {[1, 2, 3].map(hour => (
+                          <button
+                            key={hour}
+                            onClick={() => !isDisabled && handleHourToggle(task.id, hour)}
+                            disabled={isDisabled || hour > (task.minHours || 3)}
+                            className={`flex-1 py-3 rounded-lg border-2 transition-all transform hover:scale-105 ${
+                              currentHours === hour
+                                ? 'border-blue-500 bg-blue-50 text-blue-700 font-bold'
+                                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                            } ${hour > (task.minHours || 3) ? 'opacity-40 cursor-not-allowed' : ''}`}
+                          >
+                            <div className="text-lg font-bold">{hour}h</div>
+                            <div className="text-xs mt-1">{hour === 1 ? 'Minimum' : hour === 2 ? 'Good' : 'Excellent'}</div>
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {/* Progress Bar - WIDER */}
+                      <div className="w-full">
+                        <div className="flex justify-between text-sm text-gray-600 mb-2">
+                          <span className="font-medium">0 hours</span>
+                          <span className="font-bold">Progress: {((currentHours / (task.minHours || 1)) * 100).toFixed(0)}%</span>
+                          <span className="font-medium">{task.minHours} hours required</span>
+                        </div>
+                        <div className="h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+                          <div 
+                            className={`h-full transition-all duration-700 ease-out ${
+                              meetsRequirement 
+                                ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' 
+                                : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                            }`}
+                            style={{ 
+                              width: `${Math.min((currentHours / (task.minHours || 1)) * 100, 100)}%` 
+                            }}
+                          ></div>
+                        </div>
+                        <div className="flex justify-between mt-2">
+                          <div className="text-xs text-gray-500">Not started</div>
+                          <div className={`text-xs font-bold ${meetsRequirement ? 'text-emerald-600' : 'text-blue-600'}`}>
+                            {meetsRequirement ? 'Requirement met!' : `${task.minHours! - currentHours}h to go`}
+                          </div>
+                          <div className="text-xs text-gray-500">Fully completed</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Completion Status */}
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                      <div className={`text-sm font-bold ${meetsRequirement ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {meetsRequirement 
+                          ? '✓ Minimum hours requirement satisfied' 
+                          : `⚠ Minimum ${task.minHours} hours not yet completed`}
+                      </div>
                       {task.completed && meetsRequirement && (
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                        </svg>
+                        <div className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full">
+                          TASK COMPLETE
+                        </div>
                       )}
                     </div>
                   </div>
-                </div>
+                )}
+                
+                {/* Task Completion Status for non-hour tasks */}
+                {!showHoursInput && !isExcluded && (
+                  <div className="px-5 py-3 bg-gray-50 rounded-b-xl">
+                    <div className="flex items-center justify-between">
+                      <div className={`text-sm font-bold ${task.completed ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {task.completed 
+                          ? '✓ Task marked as complete' 
+                          : 'Pending completion'}
+                      </div>
+                      {task.completed && (
+                        <div className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full">
+                          COMPLETED
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
 
-        {/* Progress Summary */}
+        {/* Daily Summary */}
         <div className="mt-8 pt-8 border-t border-gray-200">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex-1">
-              <div className="text-lg font-semibold text-gray-900 mb-2">Daily Summary</div>
-              <div className={`text-3xl font-bold ${progress >= 80 ? 'text-emerald-600' : progress >= 60 ? 'text-amber-600' : 'text-rose-600'}`}>
-                {progress}% Complete
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+              <div className="flex-1">
+                <div className="text-lg font-bold text-gray-900 mb-2">DAILY PERFORMANCE SUMMARY</div>
+                <div className={`text-4xl font-bold ${progress >= 80 ? 'text-emerald-600' : progress >= 60 ? 'text-amber-600' : 'text-rose-600'}`}>
+                  {progress}%
+                </div>
+                <div className="text-sm text-gray-600 mt-2">
+                  {progress >= 80 
+                    ? 'Excellent discipline maintained. Streak continues.' 
+                    : progress >= 60 
+                      ? 'Good progress. Aim for 80% to maintain streak.' 
+                      : 'Focus required. Increase task completion to build discipline.'}
+                </div>
               </div>
-              <div className="text-sm text-gray-500 mt-2">
-                {progress >= 80 
-                  ? 'Streak will be maintained' 
-                  : progress >= 60 
-                    ? 'Good progress, aim for 80%+' 
-                    : 'Focus on completing more tasks'}
-              </div>
-            </div>
-            
-            <div className="w-full md:w-64">
-              <div className="flex justify-between text-sm font-medium text-gray-600 mb-2">
-                <span>0%</span>
-                <span>Progress</span>
-                <span>100%</span>
-              </div>
-              <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full transition-all duration-700 ${
-                    progress >= 80 
-                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' 
-                      : progress >= 60 
-                        ? 'bg-gradient-to-r from-amber-500 to-amber-600' 
-                        : 'bg-gradient-to-r from-rose-500 to-rose-600'
-                  }`}
-                  style={{ width: `${progress}%` }}
-                ></div>
+              
+              <div className="w-full md:w-72">
+                <div className="flex justify-between text-sm font-bold text-gray-700 mb-2">
+                  <span>START</span>
+                  <span>PROGRESS</span>
+                  <span>TARGET</span>
+                </div>
+                <div className="h-4 bg-gray-300 rounded-full overflow-hidden shadow-inner">
+                  <div 
+                    className={`h-full transition-all duration-1000 ease-out ${
+                      progress >= 80 
+                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' 
+                        : progress >= 60 
+                          ? 'bg-gradient-to-r from-amber-500 to-amber-600' 
+                          : 'bg-gradient-to-r from-rose-500 to-rose-600'
+                    }`}
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 mt-2">
+                  <span>0%</span>
+                  <span className={progress >= 80 ? 'text-emerald-600 font-bold' : ''}>80% Streak Line</span>
+                  <span>100%</span>
+                </div>
               </div>
             </div>
           </div>

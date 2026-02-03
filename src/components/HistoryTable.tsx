@@ -1,4 +1,4 @@
-// src/components/HistoryTable.tsx - Clean design without emojis
+// src/components/HistoryTable.tsx - Enhanced modern design
 import React from 'react';
 import { DailyRecord } from '../types';
 
@@ -15,9 +15,9 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, currentDate, onDat
 
   const getProgressColorClass = (progress: number, isSaved: boolean) => {
     if (!isSaved) return 'bg-gray-100 text-gray-700 border-gray-300';
-    if (progress >= 80) return 'bg-emerald-50 text-emerald-800 border-emerald-300';
-    if (progress >= 60) return 'bg-amber-50 text-amber-800 border-amber-300';
-    return 'bg-rose-50 text-rose-800 border-rose-300';
+    if (progress >= 80) return 'bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-800 border-emerald-300';
+    if (progress >= 60) return 'bg-gradient-to-r from-amber-50 to-amber-100 text-amber-800 border-amber-300';
+    return 'bg-gradient-to-r from-rose-50 to-rose-100 text-rose-800 border-rose-300';
   };
 
   const formatDate = (dateString: string) => {
@@ -25,31 +25,46 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, currentDate, onDat
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const getDayStatusIcon = (progress: number, isSaved: boolean) => {
+    if (!isSaved) return '✏️';
+    if (progress >= 80) return '✅';
+    if (progress >= 60) return '⚠️';
+    return '❌';
+  };
+
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-200">
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-2xl font-bold text-gray-900">History</h3>
-          <div className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-semibold rounded-full">
-            {history.length} days
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-200 h-full">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold">HISTORY LOG</h2>
+            <p className="text-gray-300 mt-1 text-sm">Track your discipline journey over time</p>
+          </div>
+          <div className="text-right">
+            <div className="text-3xl font-bold text-white">{history.length}</div>
+            <div className="text-gray-300 text-sm">Days Tracked</div>
           </div>
         </div>
-        
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="py-3 px-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Date
+      </div>
+
+      <div className="p-6">
+        {/* Table */}
+        <div className="overflow-x-auto rounded-xl border border-gray-200">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+              <tr>
+                <th className="py-4 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  DATE
                 </th>
-                <th className="py-3 px-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Day
+                <th className="py-4 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  DAY
                 </th>
-                <th className="py-3 px-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Progress
+                <th className="py-4 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  PROGRESS
                 </th>
-                <th className="py-3 px-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Status
+                <th className="py-4 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  STATUS
                 </th>
               </tr>
             </thead>
@@ -62,43 +77,78 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, currentDate, onDat
                 return (
                   <tr 
                     key={record.date}
-                    className={`hover:bg-gray-50 transition-colors cursor-pointer ${
-                      isToday ? 'bg-blue-50' : ''
+                    className={`transition-all cursor-pointer hover:bg-gray-50 ${
+                      isToday ? 'bg-gradient-to-r from-blue-50 to-indigo-50' : ''
                     }`}
                     onClick={() => onDateSelect(record.date)}
                   >
-                    <td className="py-3 px-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900">
-                          {formatDate(record.date)}
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                          isToday 
+                            ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold' 
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {formatDate(record.date).split(' ')[1]}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {formatDate(record.date)}
+                          </div>
+                          {isToday && (
+                            <div className="text-xs font-bold text-blue-600 mt-0.5">SELECTED</div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="text-sm font-bold text-gray-700">
+                        {record.dayOfWeek.toUpperCase()}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-3">
+                        <span className={`px-4 py-2 rounded-full text-sm font-bold border ${getProgressColorClass(record.progress, record.isSaved || false)}`}>
+                          {record.progress}%
                         </span>
-                        {isToday && (
-                          <span className="px-2 py-1 bg-blue-600 text-white text-xs font-bold rounded">
-                            TODAY
-                          </span>
+                        {record.isStreakDay && streakCount > 0 && (
+                          <div className="flex items-center">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 flex items-center justify-center">
+                              <span className="text-xs font-bold text-white">{streakCount}</span>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </td>
-                    <td className="py-3 px-2">
-                      <div className="text-sm text-gray-600 font-medium">
-                        {record.dayOfWeek}
-                      </div>
-                    </td>
-                    <td className="py-3 px-2">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold border ${getProgressColorClass(record.progress, record.isSaved || false)}`}>
-                        {record.progress}%
-                      </span>
-                    </td>
-                    <td className="py-3 px-2">
-                      {record.isStreakDay && streakCount > 0 ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-gray-900">{streakCount} day streak</span>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center justify-between">
+                        <div className={`text-sm font-bold ${
+                          record.isSaved 
+                            ? record.progress >= 80 
+                              ? 'text-emerald-600' 
+                              : record.progress >= 60 
+                                ? 'text-amber-600' 
+                                : 'text-rose-600'
+                            : 'text-blue-600'
+                        }`}>
+                          {record.isSaved 
+                            ? record.progress >= 80 
+                              ? 'COMPLETED' 
+                              : record.progress >= 60 
+                                ? 'PARTIAL' 
+                                : 'INCOMPLETE'
+                            : 'EDITABLE'}
                         </div>
-                      ) : record.isSaved ? (
-                        <span className="text-gray-500 text-sm font-medium">Saved</span>
-                      ) : (
-                        <span className="text-amber-500 text-sm font-medium">Editable</span>
-                      )}
+                        <div className={`w-2 h-2 rounded-full ${
+                          record.isSaved 
+                            ? record.progress >= 80 
+                              ? 'bg-emerald-500' 
+                              : record.progress >= 60 
+                                ? 'bg-amber-500' 
+                                : 'bg-rose-500'
+                            : 'bg-blue-500'
+                        }`}></div>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -107,42 +157,24 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, currentDate, onDat
           </table>
         </div>
 
-        {/* Legend */}
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="text-sm font-semibold text-gray-700 mb-3">Progress</div>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                  <span className="text-xs text-gray-600">≥80% (Streak)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                  <span className="text-xs text-gray-600">60-79%</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-rose-500"></div>
-                  <span className="text-xs text-gray-600">&lt;60%</span>
-                </div>
-              </div>
+        {/* Stats Summary */}
+        <div className="mt-6 grid grid-cols-3 gap-4">
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4">
+            <div className="text-xs font-bold text-gray-600 mb-1">TOTAL DAYS</div>
+            <div className="text-2xl font-bold text-gray-900">{history.length}</div>
+          </div>
+          <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl p-4">
+            <div className="text-xs font-bold text-emerald-600 mb-1">STREAK DAYS</div>
+            <div className="text-2xl font-bold text-emerald-800">
+              {history.filter(h => h.isStreakDay).length}
             </div>
-            <div>
-              <div className="text-sm font-semibold text-gray-700 mb-3">Status</div>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-600"></div>
-                  <span className="text-xs text-gray-600">Selected</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                  <span className="text-xs text-gray-600">Saved</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                  <span className="text-xs text-gray-600">Editable</span>
-                </div>
-              </div>
+          </div>
+          <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4">
+            <div className="text-xs font-bold text-blue-600 mb-1">AVG. PROGRESS</div>
+            <div className="text-2xl font-bold text-blue-800">
+              {history.length > 0 
+                ? Math.round(history.reduce((sum, h) => sum + h.progress, 0) / history.length) 
+                : 0}%
             </div>
           </div>
         </div>
