@@ -1,4 +1,4 @@
-// src/components/TaskManager.tsx - Completely redesigned with hour checkboxes
+// src/components/TaskManager.tsx - Complete with theme support
 import React, { useState } from 'react';
 import { Task } from '../types';
 
@@ -8,9 +8,17 @@ interface TaskManagerProps {
   progress: number;
   date: string;
   isSaved: boolean;
+  theme: 'light' | 'dark';
 }
 
-const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onToggleTask, progress, date, isSaved }) => {
+const TaskManager: React.FC<TaskManagerProps> = ({ 
+  tasks, 
+  onToggleTask, 
+  progress, 
+  date, 
+  isSaved, 
+  theme 
+}) => {
   const [hours, setHours] = useState<Record<string, number>>({});
   
   const isWeekend = () => {
@@ -77,29 +85,45 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onToggleTask, progress
 
   const getTaskColor = (taskId: string) => {
     switch(taskId) {
-      case 'workout': return 'bg-gradient-to-r from-blue-500 to-cyan-500';
-      case 'outreach': return 'bg-gradient-to-r from-emerald-500 to-green-500';
-      case 'project': return 'bg-gradient-to-r from-purple-500 to-pink-500';
-      case 'portfolio': return 'bg-gradient-to-r from-orange-500 to-red-500';
-      case 'learning': return 'bg-gradient-to-r from-indigo-500 to-blue-500';
+      case 'workout': return 'bg-gradient-to-r from-blue-600 to-cyan-600';
+      case 'outreach': return 'bg-gradient-to-r from-emerald-600 to-green-600';
+      case 'project': return 'bg-gradient-to-r from-purple-600 to-pink-600';
+      case 'portfolio': return 'bg-gradient-to-r from-orange-600 to-red-600';
+      case 'learning': return 'bg-gradient-to-r from-indigo-600 to-blue-600';
       default: return 'bg-gradient-to-r from-gray-600 to-gray-700';
     }
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-gray-200 h-full">
+    <div className={`rounded-2xl shadow-xl border h-full transition-colors duration-300 ${
+      theme === 'dark' 
+        ? 'bg-gray-800 border-gray-700' 
+        : 'bg-white border-gray-200'
+    }`}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-6">
+      <div className={`p-6 border-b transition-colors duration-300 ${
+        theme === 'dark'
+          ? 'bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 text-white border-gray-700'
+          : 'bg-gradient-to-r from-gray-900 to-gray-800 text-white border-gray-200'
+      }`}>
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold">DAILY TASKS</h2>
-            <p className="text-gray-300 mt-1 text-sm">Complete your daily discipline requirements</p>
+            <h2 className="text-2xl font-bold text-white">DAILY TASKS</h2>
+            <p className={`mt-1 text-sm ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-300'
+            }`}>
+              Complete your daily discipline requirements
+            </p>
           </div>
           <div className="text-right">
             <div className="text-3xl font-bold text-white">
               {tasks.filter(t => t.completed).length}/{tasks.length}
             </div>
-            <div className="text-gray-300 text-sm">Completed</div>
+            <div className={`text-sm ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-300'
+            }`}>
+              Completed
+            </div>
           </div>
         </div>
       </div>
@@ -118,14 +142,20 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onToggleTask, progress
             return (
               <div
                 key={task.id}
-                className={`rounded-xl border transition-all ${
+                className={`rounded-xl border transition-all duration-300 ${
                   task.completed && meetsRequirement
-                    ? 'bg-gradient-to-br from-emerald-50 to-white border-emerald-300 shadow-sm' 
-                    : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                    ? theme === 'dark'
+                      ? 'bg-gradient-to-br from-emerald-900/20 to-gray-800 border-emerald-800'
+                      : 'bg-gradient-to-br from-emerald-50 to-white border-emerald-300'
+                    : theme === 'dark'
+                      ? 'bg-gray-800 border-gray-700 hover:border-gray-600'
+                      : 'bg-white border-gray-200 hover:border-gray-300'
                 } ${isDisabled ? 'opacity-60' : ''}`}
               >
                 {/* Task Header */}
-                <div className="p-5 border-b border-gray-100">
+                <div className={`p-5 border-b ${
+                  theme === 'dark' ? 'border-gray-700' : 'border-gray-100'
+                }`}>
                   <div className="flex items-start gap-4">
                     {/* Icon */}
                     <div className={`flex-shrink-0 w-12 h-12 rounded-xl ${taskColor} flex items-center justify-center text-white`}>
@@ -137,16 +167,28 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onToggleTask, progress
                       <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-xl font-bold text-gray-900">{task.name}</h3>
+                            <h3 className={`text-xl font-bold ${
+                              theme === 'dark' ? 'text-white' : 'text-gray-900'
+                            }`}>
+                              {task.name}
+                            </h3>
                             <span className={`px-3 py-1 ${taskColor} text-white text-xs font-bold rounded-full`}>
                               {task.weight}% WEIGHT
                             </span>
                           </div>
-                          <p className="text-gray-600 text-sm">{task.description}</p>
+                          <p className={`text-sm ${
+                            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
+                            {task.description}
+                          </p>
                         </div>
                         
                         {isExcluded && (
-                          <span className="px-3 py-1 text-xs bg-gray-100 text-gray-600 font-medium rounded-full self-start">
+                          <span className={`px-3 py-1 text-xs font-medium rounded-full self-start ${
+                            theme === 'dark'
+                              ? 'bg-gray-900 text-gray-400'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
                             WEEKEND EXCLUDED
                           </span>
                         )}
@@ -160,8 +202,10 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onToggleTask, progress
                         disabled={isDisabled}
                         className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
                           task.completed
-                            ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-sm' 
-                            : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
+                            ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-sm'
+                            : theme === 'dark'
+                              ? 'bg-gray-700 text-gray-500 hover:bg-gray-600 hover:text-gray-300'
+                              : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
                         }`}
                       >
                         {task.completed ? (
@@ -178,13 +222,25 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onToggleTask, progress
                   </div>
                 </div>
                 
-                {/* Hours Selection - NEW CHECKBOX STYLE */}
+                {/* Hours Selection */}
                 {showHoursInput && !isExcluded && (
-                  <div className="p-5 bg-gradient-to-r from-gray-50 to-white rounded-b-xl">
+                  <div className={`p-5 rounded-b-xl ${
+                    theme === 'dark'
+                      ? 'bg-gradient-to-r from-gray-800/50 to-gray-900/50'
+                      : 'bg-gradient-to-r from-gray-50 to-white'
+                  }`}>
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-3">
-                        <div className="text-sm font-semibold text-gray-700">HOURS COMPLETED</div>
-                        <div className={`text-sm font-bold ${meetsRequirement ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        <div className={`text-sm font-semibold ${
+                          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          HOURS COMPLETED
+                        </div>
+                        <div className={`text-sm font-bold ${
+                          meetsRequirement 
+                            ? theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'
+                            : theme === 'dark' ? 'text-amber-400' : 'text-amber-600'
+                        }`}>
                           {currentHours}/{task.minHours}h {meetsRequirement ? '✓' : ''}
                         </div>
                       </div>
@@ -198,8 +254,12 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onToggleTask, progress
                             disabled={isDisabled || hour > (task.minHours || 3)}
                             className={`flex-1 py-3 rounded-lg border-2 transition-all transform hover:scale-105 ${
                               currentHours === hour
-                                ? 'border-blue-500 bg-blue-50 text-blue-700 font-bold'
-                                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                ? theme === 'dark'
+                                  ? 'border-blue-500 bg-blue-900/30 text-blue-300 font-bold'
+                                  : 'border-blue-500 bg-blue-50 text-blue-700 font-bold'
+                                : theme === 'dark'
+                                  ? 'border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-300'
+                                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-700'
                             } ${hour > (task.minHours || 3) ? 'opacity-40 cursor-not-allowed' : ''}`}
                           >
                             <div className="text-lg font-bold">{hour}h</div>
@@ -208,14 +268,22 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onToggleTask, progress
                         ))}
                       </div>
                       
-                      {/* Progress Bar - WIDER */}
+                      {/* Progress Bar */}
                       <div className="w-full">
-                        <div className="flex justify-between text-sm text-gray-600 mb-2">
+                        <div className={`flex justify-between text-sm mb-2 ${
+                          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
                           <span className="font-medium">0 hours</span>
-                          <span className="font-bold">Progress: {((currentHours / (task.minHours || 1)) * 100).toFixed(0)}%</span>
+                          <span className={`font-bold ${
+                            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            Progress: {((currentHours / (task.minHours || 1)) * 100).toFixed(0)}%
+                          </span>
                           <span className="font-medium">{task.minHours} hours required</span>
                         </div>
-                        <div className="h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+                        <div className={`h-3 rounded-full overflow-hidden shadow-inner ${
+                          theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+                        }`}>
                           <div 
                             className={`h-full transition-all duration-700 ease-out ${
                               meetsRequirement 
@@ -228,24 +296,46 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onToggleTask, progress
                           ></div>
                         </div>
                         <div className="flex justify-between mt-2">
-                          <div className="text-xs text-gray-500">Not started</div>
-                          <div className={`text-xs font-bold ${meetsRequirement ? 'text-emerald-600' : 'text-blue-600'}`}>
+                          <div className={`text-xs ${
+                            theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
+                          }`}>
+                            Not started
+                          </div>
+                          <div className={`text-xs font-bold ${
+                            meetsRequirement 
+                              ? theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'
+                              : theme === 'dark' ? 'text-blue-400' : 'text-blue-600'
+                          }`}>
                             {meetsRequirement ? 'Requirement met!' : `${task.minHours! - currentHours}h to go`}
                           </div>
-                          <div className="text-xs text-gray-500">Fully completed</div>
+                          <div className={`text-xs ${
+                            theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
+                          }`}>
+                            Fully completed
+                          </div>
                         </div>
                       </div>
                     </div>
                     
                     {/* Completion Status */}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                      <div className={`text-sm font-bold ${meetsRequirement ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    <div className={`flex items-center justify-between pt-4 border-t ${
+                      theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+                    }`}>
+                      <div className={`text-sm font-bold ${
+                        meetsRequirement 
+                          ? theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'
+                          : theme === 'dark' ? 'text-amber-400' : 'text-amber-600'
+                      }`}>
                         {meetsRequirement 
                           ? '✓ Minimum hours requirement satisfied' 
                           : `⚠ Minimum ${task.minHours} hours not yet completed`}
                       </div>
                       {task.completed && meetsRequirement && (
-                        <div className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full">
+                        <div className={`px-3 py-1 text-xs font-bold rounded-full ${
+                          theme === 'dark'
+                            ? 'bg-emerald-900/50 text-emerald-300'
+                            : 'bg-emerald-100 text-emerald-800'
+                        }`}>
                           TASK COMPLETE
                         </div>
                       )}
@@ -255,15 +345,25 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onToggleTask, progress
                 
                 {/* Task Completion Status for non-hour tasks */}
                 {!showHoursInput && !isExcluded && (
-                  <div className="px-5 py-3 bg-gray-50 rounded-b-xl">
+                  <div className={`px-5 py-3 rounded-b-xl ${
+                    theme === 'dark' ? 'bg-gray-900/30' : 'bg-gray-50'
+                  }`}>
                     <div className="flex items-center justify-between">
-                      <div className={`text-sm font-bold ${task.completed ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      <div className={`text-sm font-bold ${
+                        task.completed 
+                          ? theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'
+                          : theme === 'dark' ? 'text-amber-400' : 'text-amber-600'
+                      }`}>
                         {task.completed 
                           ? '✓ Task marked as complete' 
                           : 'Pending completion'}
                       </div>
                       {task.completed && (
-                        <div className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full">
+                        <div className={`px-3 py-1 text-xs font-bold rounded-full ${
+                          theme === 'dark'
+                            ? 'bg-emerald-900/50 text-emerald-300'
+                            : 'bg-emerald-100 text-emerald-800'
+                        }`}>
                           COMPLETED
                         </div>
                       )}
@@ -276,15 +376,33 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onToggleTask, progress
         </div>
 
         {/* Daily Summary */}
-        <div className="mt-8 pt-8 border-t border-gray-200">
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5">
+        <div className={`mt-8 pt-8 border-t ${
+          theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+        }`}>
+          <div className={`rounded-xl p-5 border ${
+            theme === 'dark'
+              ? 'bg-gradient-to-r from-gray-800 to-gray-900 border-gray-700'
+              : 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200'
+          }`}>
             <div className="flex flex-col md:flex-row justify-between items-center gap-6">
               <div className="flex-1">
-                <div className="text-lg font-bold text-gray-900 mb-2">DAILY PERFORMANCE SUMMARY</div>
-                <div className={`text-4xl font-bold ${progress >= 80 ? 'text-emerald-600' : progress >= 60 ? 'text-amber-600' : 'text-rose-600'}`}>
+                <div className={`text-lg font-bold mb-2 ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-900'
+                }`}>
+                  DAILY PERFORMANCE SUMMARY
+                </div>
+                <div className={`text-4xl font-bold ${
+                  progress >= 80 
+                    ? theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'
+                    : progress >= 60 
+                      ? theme === 'dark' ? 'text-amber-400' : 'text-amber-600'
+                      : theme === 'dark' ? 'text-rose-400' : 'text-rose-600'
+                }`}>
                   {progress}%
                 </div>
-                <div className="text-sm text-gray-600 mt-2">
+                <div className={`text-sm mt-2 ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
                   {progress >= 80 
                     ? 'Excellent discipline maintained. Streak continues.' 
                     : progress >= 60 
@@ -294,12 +412,16 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onToggleTask, progress
               </div>
               
               <div className="w-full md:w-72">
-                <div className="flex justify-between text-sm font-bold text-gray-700 mb-2">
+                <div className={`flex justify-between text-sm font-bold mb-2 ${
+                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                }`}>
                   <span>START</span>
                   <span>PROGRESS</span>
                   <span>TARGET</span>
                 </div>
-                <div className="h-4 bg-gray-300 rounded-full overflow-hidden shadow-inner">
+                <div className={`h-4 rounded-full overflow-hidden shadow-inner ${
+                  theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'
+                }`}>
                   <div 
                     className={`h-full transition-all duration-1000 ease-out ${
                       progress >= 80 
@@ -311,9 +433,19 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onToggleTask, progress
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>
-                <div className="flex justify-between text-xs text-gray-500 mt-2">
+                <div className={`flex justify-between text-xs mt-2 ${
+                  theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
+                }`}>
                   <span>0%</span>
-                  <span className={progress >= 80 ? 'text-emerald-600 font-bold' : ''}>80% Streak Line</span>
+                  <span className={`${
+                    progress >= 80 ? 'font-bold' : ''
+                  } ${
+                    progress >= 80 
+                      ? theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'
+                      : theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    80% Streak Line
+                  </span>
                   <span>100%</span>
                 </div>
               </div>
