@@ -1,6 +1,7 @@
-// src/components/HistoryTable.tsx - Updated with theme prop
-import React from 'react';
+// src/components/HistoryTable.tsx - Updated with full width and 7-day limit
+import React, { useState } from 'react';
 import { DailyRecord } from '../types';
+import { FiCalendar, FiTrendingUp, FiTrendingDown, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 
 interface HistoryTableProps {
   history: DailyRecord[];
@@ -10,257 +11,382 @@ interface HistoryTableProps {
 }
 
 const HistoryTable: React.FC<HistoryTableProps> = ({ history, currentDate, onDateSelect, theme }) => {
-  const sortedHistory = [...history].sort((a, b) => 
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  
+  const uniqueHistory = history.filter((record, index, self) =>
+    index === self.findIndex(r => r.date === record.date)
+  ).sort((a, b) => 
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
-  const getProgressColorClass = (progress: number, isSaved: boolean) => {
-    if (!isSaved) {
-      return theme === 'dark' 
-        ? 'bg-gray-800 text-gray-300 border-gray-700' 
-        : 'bg-gray-100 text-gray-700 border-gray-300';
-    }
+  // Get last 7 days or all history based on toggle
+  const displayedHistory = showAllHistory ? uniqueHistory : uniqueHistory.slice(0, 7);
+
+  const getProgressColorClass = (progress: number) => {
     if (progress >= 80) {
       return theme === 'dark'
-        ? 'bg-gradient-to-r from-emerald-900/40 to-emerald-800/30 text-emerald-300 border-emerald-800'
-        : 'bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-800 border-emerald-300';
+        ? 'bg-emerald-900/30 text-emerald-300'
+        : 'bg-emerald-100 text-emerald-800';
     }
     if (progress >= 60) {
       return theme === 'dark'
-        ? 'bg-gradient-to-r from-amber-900/40 to-amber-800/30 text-amber-300 border-amber-800'
-        : 'bg-gradient-to-r from-amber-50 to-amber-100 text-amber-800 border-amber-300';
+        ? 'bg-amber-900/30 text-amber-300'
+        : 'bg-amber-100 text-amber-800';
     }
     return theme === 'dark'
-      ? 'bg-gradient-to-r from-rose-900/40 to-rose-800/30 text-rose-300 border-rose-800'
-      : 'bg-gradient-to-r from-rose-50 to-rose-100 text-rose-800 border-rose-300';
+      ? 'bg-rose-900/30 text-rose-300'
+      : 'bg-rose-100 text-rose-800';
+  };
+
+  const getTaskProgressColor = (value: number) => {
+    if (value >= 80) return theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600';
+    if (value >= 60) return theme === 'dark' ? 'text-amber-400' : 'text-amber-600';
+    return theme === 'dark' ? 'text-rose-400' : 'text-rose-600';
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  const getDayName = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { weekday: 'short' });
+  };
+
+  // Calculate task progress for each day
+  const calculateTaskProgress = (record: DailyRecord, taskId: string) => {
+    const task = record.tasks.find(t => t.id === taskId);
+    if (!task) return 0;
+    
+    if (task.id === 'outreach' && record.outreachPitches) {
+      const totalPitches = Object.values(record.outreachPitches).reduce((a, b) => a + b, 0);
+      return Math.min((totalPitches / 5) * 100, 140);
+    }
+    
+    if (task.id === 'project' && record.projectHours !== undefined) {
+      return Math.min((record.projectHours / 2) * 100, 200);
+    }
+    
+    if (task.id === 'advance-project' && record.advanceProjectHours !== undefined) {
+      return Math.min((record.advanceProjectHours / 3) * 100, 133);
+    }
+    
+    return task.completed ? 100 : 0;
   };
 
   return (
-    <div className={`rounded-2xl shadow-xl border h-full transition-colors duration-300 ${
+    <div className={`rounded-3xl border-2 shadow-xl transition-colors duration-300 ${
       theme === 'dark' 
-        ? 'bg-gray-800 border-gray-700' 
-        : 'bg-white border-gray-200'
+        ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700' 
+        : 'bg-gradient-to-br from-white to-gray-50 border-gray-300'
     }`}>
       {/* Header */}
-      <div className={`p-6 border-b transition-colors duration-300 ${
+      <div className={`p-6 border-b ${
         theme === 'dark'
-          ? 'bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 text-white border-gray-700'
-          : 'bg-gradient-to-r from-gray-900 to-gray-800 text-white border-gray-200'
+          ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white border-gray-700'
+          : 'bg-gradient-to-r from-gray-700 to-gray-800 text-white border-gray-200'
       }`}>
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-white">HISTORY LOG</h2>
-            <p className={`mt-1 text-sm ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-300'
-            }`}>
-              Track your discipline journey over time
-            </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <FiCalendar className="w-6 h-6" />
+            <div>
+              <h3 className="text-xl font-bold">HISTORY LOG</h3>
+              <p className={`text-lg mt-1 ${
+                theme === 'dark' ? 'text-gray-300' : 'text-gray-300'
+              }`}>
+                {uniqueHistory.length} days tracked • Showing {displayedHistory.length} days
+              </p>
+            </div>
           </div>
           <div className="text-right">
-            <div className="text-3xl font-bold text-white">{history.length}</div>
-            <div className={`text-sm ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-300'
+            <div className={`text-lg font-bold ${
+              theme === 'dark' ? 'text-gray-300' : 'text-gray-300'
             }`}>
-              Days Tracked
+              Avg: {uniqueHistory.length > 0 
+                ? Math.round(uniqueHistory.reduce((sum, h) => sum + h.progress, 0) / uniqueHistory.length) 
+                : 0}%
             </div>
           </div>
         </div>
       </div>
 
       <div className="p-6">
-        {/* Table */}
-        <div className={`overflow-x-auto rounded-xl border ${
-          theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
-        }`}>
-          <table className="min-w-full divide-y">
-            <thead className={`${
-              theme === 'dark' 
-                ? 'bg-gradient-to-r from-gray-800 to-gray-900 divide-gray-700' 
-                : 'bg-gradient-to-r from-gray-50 to-gray-100 divide-gray-200'
-            }`}>
-              <tr>
-                <th className={`py-4 px-4 text-left text-xs font-bold uppercase tracking-wider ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  DATE
-                </th>
-                <th className={`py-4 px-4 text-left text-xs font-bold uppercase tracking-wider ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  DAY
-                </th>
-                <th className={`py-4 px-4 text-left text-xs font-bold uppercase tracking-wider ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  PROGRESS
-                </th>
-                <th className={`py-4 px-4 text-left text-xs font-bold uppercase tracking-wider ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  STATUS
-                </th>
+        {/* History Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className={`border-b ${
+                theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+              }`}>
+                <th className={`text-left py-3 px-4 font-semibold ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>Date</th>
+                <th className={`text-left py-3 px-4 font-semibold ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>Outreach</th>
+                <th className={`text-left py-3 px-4 font-semibold ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>Project</th>
+                <th className={`text-left py-3 px-4 font-semibold ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>Adv. Project</th>
+                <th className={`text-left py-3 px-4 font-semibold ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>Learning</th>
+                <th className={`text-left py-3 px-4 font-semibold ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>Scrolling</th>
+                <th className={`text-left py-3 px-4 font-semibold ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>Overall</th>
+                <th className={`text-left py-3 px-4 font-semibold ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>Trend</th>
               </tr>
             </thead>
-            <tbody className={`divide-y ${
-              theme === 'dark' ? 'divide-gray-700' : 'divide-gray-200'
-            }`}>
-              {sortedHistory.map((record, index) => {
-                const isToday = record.date === currentDate;
-                const streakCount = record.isStreakDay ? 
-                  Math.min(index + 1, history.filter(h => h.isStreakDay).length) : 0;
-                
-                return (
-                  <tr 
-                    key={record.date}
-                    className={`transition-all cursor-pointer hover:opacity-90 ${
-                      isToday 
-                        ? theme === 'dark'
-                          ? 'bg-gradient-to-r from-blue-900/30 to-indigo-900/30'
-                          : 'bg-gradient-to-r from-blue-50 to-indigo-50'
-                        : ''
-                    }`}
-                    onClick={() => onDateSelect(record.date)}
-                  >
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          isToday 
-                            ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold' 
-                            : theme === 'dark'
-                              ? 'bg-gray-700 text-gray-300'
-                              : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {formatDate(record.date).split(' ')[1]}
-                        </div>
-                        <div>
-                          <div className={`text-sm font-medium ${
-                            theme === 'dark' ? 'text-white' : 'text-gray-900'
-                          }`}>
-                            {formatDate(record.date)}
-                          </div>
-                          {isToday && (
-                            <div className={`text-xs font-bold mt-0.5 ${
-                              theme === 'dark' ? 'text-blue-400' : 'text-blue-600'
-                            }`}>
-                              SELECTED
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className={`text-sm font-bold ${
-                        theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+            <tbody>
+              {displayedHistory.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className={`py-8 text-center ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    No history yet. Start tracking your progress!
+                  </td>
+                </tr>
+              ) : (
+                displayedHistory.map((record) => {
+                  const isToday = record.date === currentDate;
+                  const outreachProgress = calculateTaskProgress(record, 'outreach');
+                  const projectProgress = calculateTaskProgress(record, 'project');
+                  const advanceProgress = calculateTaskProgress(record, 'advance-project');
+                  const learningTask = record.tasks.find(t => t.id === 'learning');
+                  const scrollingTask = record.tasks.find(t => t.id === 'scrolling');
+                  
+                  return (
+                    <tr 
+                      key={record.date}
+                      className={`cursor-pointer transition-all ${
+                        isToday 
+                          ? theme === 'dark'
+                            ? 'bg-blue-900/20'
+                            : 'bg-blue-50'
+                          : `hover:${theme === 'dark' ? 'bg-gray-800/30' : 'bg-gray-50'}`
+                      } ${record.date !== displayedHistory[displayedHistory.length - 1].date ? `border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}` : ''}`}
+                      onClick={() => onDateSelect(record.date)}
+                    >
+                      <td className={`py-3 px-4 ${
+                        theme === 'dark' ? 'text-gray-300' : 'text-gray-800'
                       }`}>
-                        {record.dayOfWeek.toUpperCase()}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-3">
-                        <span className={`px-4 py-2 rounded-full text-sm font-bold border ${getProgressColorClass(record.progress, record.isSaved || false)}`}>
-                          {record.progress}%
-                        </span>
-                        {record.isStreakDay && streakCount > 0 && (
-                          <div className="flex items-center">
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-700 flex items-center justify-center">
-                              <span className="text-xs font-bold text-white">{streakCount}</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center justify-between">
-                        <div className={`text-sm font-bold ${
-                          record.isSaved 
-                            ? record.progress >= 80 
-                              ? theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'
-                              : record.progress >= 60 
-                                ? theme === 'dark' ? 'text-amber-400' : 'text-amber-600'
-                                : theme === 'dark' ? 'text-rose-400' : 'text-rose-600'
-                            : theme === 'dark' ? 'text-blue-400' : 'text-blue-600'
+                        <div className="font-medium">{formatDate(record.date)}</div>
+                        <div className={`text-sm ${
+                          theme === 'dark' ? 'text-gray-500' : 'text-gray-600'
                         }`}>
-                          {record.isSaved 
-                            ? record.progress >= 80 
-                              ? 'COMPLETED' 
-                              : record.progress >= 60 
-                                ? 'PARTIAL' 
-                                : 'INCOMPLETE'
-                            : 'EDITABLE'}
+                          {getDayName(record.date)}
                         </div>
-                        <div className={`w-2 h-2 rounded-full ${
-                          record.isSaved 
-                            ? record.progress >= 80 
-                              ? 'bg-emerald-500' 
-                              : record.progress >= 60 
-                                ? 'bg-amber-500' 
-                                : 'bg-rose-500'
-                            : 'bg-blue-500'
-                        }`}></div>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                      
+                      {/* Outreach Column */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center">
+                          <div className={`w-16 h-2 rounded-full overflow-hidden ${
+                            theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'
+                          }`}>
+                            <div 
+                              className={`h-full ${
+                                outreachProgress >= 100 ? 'bg-emerald-500' : 
+                                outreachProgress >= 60 ? 'bg-amber-500' : 'bg-rose-500'
+                              }`}
+                              style={{ width: `${Math.min(outreachProgress, 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className={`ml-2 text-sm font-bold ${getTaskProgressColor(outreachProgress)}`}>
+                            {Math.round(outreachProgress)}%
+                          </span>
+                        </div>
+                      </td>
+                      
+                      {/* Project Column */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center">
+                          <div className={`w-16 h-2 rounded-full overflow-hidden ${
+                            theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'
+                          }`}>
+                            <div 
+                              className={`h-full ${
+                                projectProgress >= 100 ? 'bg-emerald-500' : 
+                                projectProgress >= 60 ? 'bg-amber-500' : 'bg-rose-500'
+                              }`}
+                              style={{ width: `${Math.min(projectProgress, 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className={`ml-2 text-sm font-bold ${getTaskProgressColor(projectProgress)}`}>
+                            {Math.round(projectProgress)}%
+                          </span>
+                        </div>
+                      </td>
+                      
+                      {/* Advanced Project Column */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center">
+                          <div className={`w-16 h-2 rounded-full overflow-hidden ${
+                            theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'
+                          }`}>
+                            <div 
+                              className={`h-full ${
+                                advanceProgress >= 100 ? 'bg-emerald-500' : 
+                                advanceProgress >= 60 ? 'bg-amber-500' : 'bg-rose-500'
+                              }`}
+                              style={{ width: `${Math.min(advanceProgress, 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className={`ml-2 text-sm font-bold ${getTaskProgressColor(advanceProgress)}`}>
+                            {Math.round(advanceProgress)}%
+                          </span>
+                        </div>
+                      </td>
+                      
+                      {/* Learning Column */}
+                      <td className="py-3 px-4">
+                        <div className={`text-lg ${
+                          learningTask?.completed 
+                            ? theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'
+                            : theme === 'dark' ? 'text-rose-400' : 'text-rose-600'
+                        }`}>
+                          {learningTask?.completed ? '✓' : '✗'}
+                        </div>
+                      </td>
+                      
+                      {/* Scrolling Column */}
+                      <td className="py-3 px-4">
+                        <div className={`text-lg ${
+                          scrollingTask?.completed 
+                            ? theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'
+                            : theme === 'dark' ? 'text-rose-400' : 'text-rose-600'
+                        }`}>
+                          {scrollingTask?.completed ? '✓' : '✗'}
+                        </div>
+                      </td>
+                      
+                      {/* Overall Progress Column */}
+                      <td className="py-3 px-4">
+                        <div className={`px-3 py-1 rounded-full text-sm font-bold ${getProgressColorClass(record.progress)}`}>
+                          {record.progress}%
+                        </div>
+                      </td>
+                      
+                      {/* Trend Column */}
+                      <td className="py-3 px-4">
+                        <div className={`text-xl ${
+                          record.progress >= 80 
+                            ? theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'
+                            : theme === 'dark' ? 'text-amber-400' : 'text-amber-600'
+                        }`}>
+                          {record.progress >= 80 ? <FiTrendingUp /> : <FiTrendingDown />}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Stats Summary */}
-        <div className="mt-6 grid grid-cols-3 gap-4">
-          <div className={`rounded-xl p-4 border ${
-            theme === 'dark'
-              ? 'bg-gradient-to-r from-gray-800 to-gray-900 border-gray-700'
-              : 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200'
-          }`}>
-            <div className={`text-xs font-bold mb-1 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              TOTAL DAYS
-            </div>
-            <div className={`text-2xl font-bold ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
-            }`}>
-              {history.length}
-            </div>
+        {/* Show More/Less Button */}
+        {uniqueHistory.length > 7 && (
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={() => setShowAllHistory(!showAllHistory)}
+              className={`px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2 ${
+                theme === 'dark'
+                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {showAllHistory ? (
+                <>
+                  <FiChevronUp className="w-5 h-5" />
+                  Show Less (Last 7 Days)
+                </>
+              ) : (
+                <>
+                  <FiChevronDown className="w-5 h-5" />
+                  Show All History ({uniqueHistory.length} Days)
+                </>
+              )}
+            </button>
           </div>
-          <div className={`rounded-xl p-4 border ${
-            theme === 'dark'
-              ? 'bg-gradient-to-r from-emerald-900/40 to-emerald-800/30 border-emerald-800'
-              : 'bg-gradient-to-r from-emerald-50 to-emerald-100 border-emerald-300'
-          }`}>
-            <div className={`text-xs font-bold mb-1 ${
-              theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'
-            }`}>
-              STREAK DAYS
+        )}
+
+        {/* Summary */}
+        <div className={`mt-6 p-5 rounded-xl border-2 ${
+          theme === 'dark'
+            ? 'bg-gradient-to-r from-gray-800 to-gray-900 border-gray-700'
+            : 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200'
+        }`}>
+          <div className="grid grid-cols-4 gap-6">
+            <div>
+              <div className={`text-base font-bold mb-2 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                TOTAL DAYS
+              </div>
+              <div className={`text-3xl font-bold ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
+                {uniqueHistory.length}
+              </div>
             </div>
-            <div className={`text-2xl font-bold ${
-              theme === 'dark' ? 'text-emerald-300' : 'text-emerald-800'
-            }`}>
-              {history.filter(h => h.isStreakDay).length}
+            <div>
+              <div className={`text-base font-bold mb-2 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                STREAK DAYS
+              </div>
+              <div className={`text-3xl font-bold ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
+                {uniqueHistory.filter(h => h.isStreakDay).length}
+              </div>
             </div>
-          </div>
-          <div className={`rounded-xl p-4 border ${
-            theme === 'dark'
-              ? 'bg-gradient-to-r from-blue-900/40 to-blue-800/30 border-blue-800'
-              : 'bg-gradient-to-r from-blue-50 to-blue-100 border-blue-300'
-          }`}>
-            <div className={`text-xs font-bold mb-1 ${
-              theme === 'dark' ? 'text-blue-400' : 'text-blue-600'
-            }`}>
-              AVG. PROGRESS
+            <div>
+              <div className={`text-base font-bold mb-2 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                BEST DAY
+              </div>
+              <div className={`text-3xl font-bold ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
+                {uniqueHistory.length > 0 
+                  ? Math.max(...uniqueHistory.map(h => h.progress)) 
+                  : 0}%
+              </div>
             </div>
-            <div className={`text-2xl font-bold ${
-              theme === 'dark' ? 'text-blue-300' : 'text-blue-800'
-            }`}>
-              {history.length > 0 
-                ? Math.round(history.reduce((sum, h) => sum + h.progress, 0) / history.length) 
-                : 0}%
+            <div>
+              <div className={`text-base font-bold mb-2 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                CONSISTENCY
+              </div>
+              <div className={`text-3xl font-bold ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
+                {uniqueHistory.length > 0 
+                  ? Math.round((uniqueHistory.filter(h => h.progress >= 80).length / uniqueHistory.length) * 100)
+                  : 0}%
+              </div>
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
-// src/components/Dashboard.tsx - Updated with theme prop
+// src/components/Dashboard.tsx - Updated with visible bars in graph
 import React from 'react';
-import ProgressRing from './ProgressRing';
+import { FiTrendingUp, FiTrendingDown } from 'react-icons/fi';
+import { DailyRecord } from '../types';
 
 interface DashboardProps {
   currentDate: string;
@@ -8,9 +9,8 @@ interface DashboardProps {
   streak: number;
   weeklyProgress: number;
   monthlyProgress: number;
-  isSaved: boolean;
-  onSave: () => void;
   theme: 'light' | 'dark';
+  history: DailyRecord[];
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -19,9 +19,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   streak,
   weeklyProgress,
   monthlyProgress,
-  isSaved,
-  onSave,
-  theme
+  theme,
+  history
 }) => {
   const getProgressColor = (value: number) => {
     if (value >= 80) return theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600';
@@ -29,52 +28,88 @@ const Dashboard: React.FC<DashboardProps> = ({
     return theme === 'dark' ? 'text-rose-400' : 'text-rose-600';
   };
 
-  const getProgressBgColor = (value: number) => {
-    if (value >= 80) return theme === 'dark' ? 'bg-gradient-to-br from-emerald-900/30 to-emerald-800/20' : 'bg-gradient-to-br from-emerald-50 to-emerald-100';
-    if (value >= 60) return theme === 'dark' ? 'bg-gradient-to-br from-amber-900/30 to-amber-800/20' : 'bg-gradient-to-br from-amber-50 to-amber-100';
-    return theme === 'dark' ? 'bg-gradient-to-br from-rose-900/30 to-rose-800/20' : 'bg-gradient-to-br from-rose-50 to-rose-100';
+  const getTrendIcon = (value: number) => {
+    return value >= 80 ? <FiTrendingUp className="w-6 h-6" /> : <FiTrendingDown className="w-6 h-6" />;
   };
 
-  const getProgressBorderColor = (value: number) => {
-    if (value >= 80) return theme === 'dark' ? 'border-emerald-800' : 'border-emerald-200';
-    if (value >= 60) return theme === 'dark' ? 'border-amber-800' : 'border-amber-200';
-    return theme === 'dark' ? 'border-rose-800' : 'border-rose-200';
+  const getTrendColor = (value: number) => {
+    if (value >= 80) return theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600';
+    return theme === 'dark' ? 'text-rose-400' : 'text-rose-600';
   };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', { 
+      weekday: 'long',
+      month: 'long', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  // Get last 7 days of progress data for the chart
+  const getChartData = () => {
+    const today = new Date();
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 6); // Get 7 days total including today
+    
+    const filteredHistory = history
+      .filter(record => {
+        const recordDate = new Date(record.date);
+        return recordDate >= sevenDaysAgo && recordDate <= today;
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    // Fill in missing days with 0% progress
+    const chartData = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const record = filteredHistory.find(r => r.date === dateStr);
+      
+      chartData.push({
+        date: dateStr,
+        displayDate: date.toLocaleDateString('en-US', { weekday: 'short' }),
+        fullDate: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        progress: record ? record.progress : 0
+      });
+    }
+    
+    return chartData;
+  };
+
+  const chartData = getChartData();
+  const maxProgress = Math.max(...chartData.map(d => d.progress), 100);
 
   return (
-    <div className={`rounded-2xl shadow-xl border overflow-hidden transition-colors duration-300 ${
+    <div className={`rounded-3xl border-2 shadow-2xl transition-colors duration-300 ${
       theme === 'dark' 
-        ? 'bg-gray-800 border-gray-700' 
-        : 'bg-white border-gray-200'
+        ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700' 
+        : 'bg-gradient-to-br from-white to-gray-50 border-gray-300'
     }`}>
       {/* Header */}
-      <div className={`p-6 border-b transition-colors duration-300 ${
+      <div className={`p-6 border-b ${
         theme === 'dark'
-          ? 'bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 text-white border-gray-700'
-          : 'bg-gradient-to-r from-gray-900 to-gray-800 text-white border-gray-200'
+          ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white border-gray-700'
+          : 'bg-gradient-to-r from-gray-700 to-gray-800 text-white border-gray-200'
       }`}>
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-white">PROGRESS DASHBOARD</h2>
-            <p className={`mt-1 text-sm ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-300'
+            <h2 className="text-2xl font-bold">PROGRESS DASHBOARD</h2>
+            <p className={`text-lg mt-1 ${
+              theme === 'dark' ? 'text-gray-300' : 'text-gray-300'
             }`}>
-              {new Date(currentDate).toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
+              {formatDate(currentDate)}
             </p>
           </div>
           <div className="text-right">
             <div className={`text-4xl font-bold ${getProgressColor(progress)}`}>
               {progress}%
             </div>
-            <div className={`text-sm ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-300'
+            <div className={`text-base ${
+              theme === 'dark' ? 'text-gray-300' : 'text-gray-300'
             }`}>
-              Daily Score
+              Overall Progress
             </div>
           </div>
         </div>
@@ -84,174 +119,351 @@ const Dashboard: React.FC<DashboardProps> = ({
         {/* Main Progress Bar */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-3">
-            <div className={`text-lg font-semibold ${
-              theme === 'dark' ? 'text-gray-100' : 'text-gray-800'
+            <div className={`text-lg font-bold ${
+              theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
             }`}>
-              Completion Progress
+              Today's Progress
             </div>
-            <div className="flex items-center space-x-3">
-              <div className={`text-sm font-medium px-3 py-1 rounded-full ${
-                progress >= 80 
-                  ? theme === 'dark' ? 'bg-emerald-900/50 text-emerald-300' : 'bg-emerald-100 text-emerald-800'
-                  : theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'
-              }`}>
-                {progress >= 80 ? 'Streak Active' : 'Streak Inactive'}
-              </div>
+            <div className={`text-xl font-bold flex items-center gap-2 ${getProgressColor(progress)}`}>
+              {progress}% {getTrendIcon(progress)}
             </div>
           </div>
-          <div className={`h-4 rounded-full overflow-hidden shadow-inner ${
-            theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+          <div className={`h-4 rounded-full overflow-hidden ${
+            theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'
           }`}>
             <div 
               className={`h-full transition-all duration-1000 ease-out ${
                 progress >= 80 
-                  ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' 
+                  ? 'bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-300' 
                   : progress >= 60 
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-600' 
-                    : 'bg-gradient-to-r from-rose-500 to-rose-600'
+                    ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-300' 
+                    : 'bg-gradient-to-r from-rose-500 via-rose-400 to-rose-300'
               }`}
               style={{ width: `${progress}%` }}
             ></div>
           </div>
-          <div className={`flex justify-between text-sm mt-2 ${
+          <div className={`flex justify-between text-base mt-2 ${
             theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
           }`}>
             <span>0%</span>
-            <span className={`${progress >= 80 ? 'font-bold' : 'font-medium'} ${
-              progress >= 80 ? getProgressColor(progress) : theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-            }`}>
-              80% Threshold
-            </span>
+            <span className="font-bold">80% Target</span>
             <span>100%</span>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          {/* Streak Card */}
-          <div className={`rounded-xl p-5 border transition-transform hover:scale-[1.02] ${getProgressBorderColor(progress)} ${getProgressBgColor(progress)}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className={`text-sm font-medium mb-1 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  CURRENT STREAK
-                </div>
-                <div className={`text-3xl font-bold ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                }`}>
-                  {streak} days
-                </div>
-                <div className={`text-xs mt-2 ${
-                  theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
-                }`}>
-                  ≥80% daily required
-                </div>
-              </div>
-              <div className={`text-3xl ${
-                theme === 'dark' ? 'text-gray-500' : 'text-gray-700'
+        {/* 7-Day Progress Chart - Updated with more visible bars */}
+        <div className={`mb-8 p-5 rounded-2xl border ${
+          theme === 'dark' 
+            ? 'bg-gray-800/50 border-gray-700' 
+            : 'bg-white border-gray-200'
+        }`}>
+          <h3 className={`text-xl font-bold mb-4 ${
+            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+          }`}>
+            7-Day Progress Trend
+          </h3>
+          <div className="h-52">
+            {/* Y-axis labels and chart container */}
+            <div className="flex h-full">
+              {/* Y-axis labels */}
+              <div className={`flex flex-col justify-between mr-3 text-right ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
               }`}>
-                →
+                {[100, 80, 60, 40, 20, 0].map(value => (
+                  <div key={value} className="text-sm font-medium">
+                    {value}%
+                  </div>
+                ))}
+              </div>
+              
+              {/* Chart area */}
+              <div className="flex-1 relative">
+                {/* Grid lines */}
+                <div className="absolute inset-0 flex flex-col justify-between">
+                  {[0, 1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className={`h-px w-full ${
+                      theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'
+                    }`}></div>
+                  ))}
+                </div>
+                
+                {/* Bars for each day - MORE VISIBLE BARS */}
+                <div className="absolute inset-0 flex items-end justify-between px-1">
+                  {chartData.map((data, index) => {
+                    // Calculate bar height - ensure even low values are visible
+                    const barHeight = Math.max(
+                      (data.progress / 100) * 90, // Use 90% of available height
+                      data.progress > 0 ? 8 : 0 // Minimum height for non-zero values
+                    );
+                    
+                    return (
+                      <div 
+                        key={data.date} 
+                        className="flex flex-col items-center justify-end"
+                        style={{ width: `${100 / chartData.length}%`, height: '100%' }}
+                      >
+                        {/* Progress bar with value label */}
+                        <div className="relative group w-full flex flex-col items-center">
+                          {/* Value label above bar */}
+                          <div className="mb-1">
+                            <div className={`text-xs font-bold ${
+                              theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                            }`}>
+                              {data.progress}%
+                            </div>
+                          </div>
+                          
+                          {/* Actual progress bar - WIDER AND MORE VISIBLE */}
+                          <div className="w-10/12 max-w-16 mx-auto relative">
+                            {/* Bar background with more visibility for low values */}
+                            <div 
+                              className={`w-full rounded-t-lg relative overflow-hidden ${
+                                theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-300/50'
+                              }`}
+                              style={{ height: '100%', minHeight: '60px' }}
+                            >
+                              {/* Progress fill - ensure it's always visible */}
+                              <div
+                                className={`w-full rounded-t-lg transition-all duration-700 absolute bottom-0 ${
+                                  data.progress >= 80 
+                                    ? 'bg-gradient-to-t from-emerald-500 to-emerald-400' 
+                                    : data.progress >= 60 
+                                      ? 'bg-gradient-to-t from-amber-500 to-amber-400' 
+                                      : data.progress >= 1
+                                        ? 'bg-gradient-to-t from-rose-500 to-rose-400'
+                                        : 'bg-transparent'
+                                }`}
+                                style={{ 
+                                  height: `${barHeight}%`,
+                                  minHeight: data.progress > 0 ? '6px' : '0px'
+                                }}
+                              >
+                                {/* Bar shine effect */}
+                                {data.progress > 0 && (
+                                  <div className={`absolute top-0 left-0 right-0 h-1/3 rounded-t-lg ${
+                                    theme === 'dark' ? 'bg-white/20' : 'bg-white/40'
+                                  }`}></div>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Bar outline - always visible */}
+                            <div className={`absolute inset-0 rounded-t-lg border ${
+                              theme === 'dark' ? 'border-gray-600/50' : 'border-gray-400/50'
+                            }`}></div>
+                          </div>
+                          
+                          {/* Day label */}
+                          <div className="mt-2 text-center w-full">
+                            <div className={`text-xs font-medium ${
+                              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              {data.displayDate}
+                            </div>
+                            <div className={`text-xs ${
+                              theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
+                            }`}>
+                              {data.fullDate}
+                            </div>
+                          </div>
+                          
+                          {/* Hover tooltip */}
+                          <div className={`absolute -top-12 left-1/2 transform -translate-x-1/2 px-2 py-1 rounded text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity ${
+                            theme === 'dark' 
+                              ? 'bg-gray-800 text-gray-300 border border-gray-700' 
+                              : 'bg-gray-900 text-white'
+                          }`}>
+                            {data.displayDate}: {data.progress}% progress
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Weekly Card */}
-          <div className={`rounded-xl p-5 border transition-transform hover:scale-[1.02] ${getProgressBorderColor(weeklyProgress)} ${getProgressBgColor(weeklyProgress)}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className={`text-sm font-medium mb-1 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  WEEKLY AVERAGE
-                </div>
-                <div className={`text-3xl font-bold ${getProgressColor(weeklyProgress)}`}>
-                  {weeklyProgress}%
-                </div>
-                <div className={`text-xs mt-2 ${
-                  theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
-                }`}>
-                  Last 7 days
-                </div>
+          
+          {/* Summary stats below chart */}
+          <div className={`grid grid-cols-3 gap-4 mt-8 pt-4 border-t ${
+            theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+          }`}>
+            <div className="text-center">
+              <div className={`text-sm font-medium ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Week Avg
               </div>
-              <ProgressRing progress={weeklyProgress} size={48} strokeWidth={6} theme={theme} />
+              <div className={`text-lg font-bold ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
+                {chartData.length > 0 
+                  ? Math.round(chartData.reduce((sum, d) => sum + d.progress, 0) / chartData.length)
+                  : 0}%
+              </div>
             </div>
-          </div>
-
-          {/* Monthly Card */}
-          <div className={`rounded-xl p-5 border transition-transform hover:scale-[1.02] ${getProgressBorderColor(monthlyProgress)} ${getProgressBgColor(monthlyProgress)}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className={`text-sm font-medium mb-1 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  MONTHLY AVERAGE
-                </div>
-                <div className={`text-3xl font-bold ${getProgressColor(monthlyProgress)}`}>
-                  {monthlyProgress}%
-                </div>
-                <div className={`text-xs mt-2 ${
-                  theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
-                }`}>
-                  Current month
-                </div>
+            <div className="text-center">
+              <div className={`text-sm font-medium ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Best Day
               </div>
-              <ProgressRing progress={monthlyProgress} size={48} strokeWidth={6} theme={theme} />
+              <div className={`text-lg font-bold ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
+                {Math.max(...chartData.map(d => d.progress))}%
+              </div>
+            </div>
+            <div className="text-center">
+              <div className={`text-sm font-medium ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Active Days
+              </div>
+              <div className={`text-lg font-bold ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
+                {chartData.filter(d => d.progress > 0).length}/7
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Save Section */}
-        <div className={`rounded-xl border p-5 transition-colors duration-300 ${
-          isSaved 
-            ? theme === 'dark' 
-              ? 'bg-gradient-to-r from-gray-800/50 to-gray-900/50 border-gray-600' 
-              : 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-300'
-            : theme === 'dark'
-              ? 'bg-gradient-to-r from-blue-900/30 to-indigo-900/30 border-blue-800'
-              : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
-        }`}>
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex-1">
-              <h3 className={`text-lg font-bold mb-2 ${
-                theme === 'dark' ? 'text-white' : 'text-gray-900'
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Streak */}
+          <div className={`rounded-xl p-5 border-2 ${
+            streak > 0 
+              ? theme === 'dark' 
+                ? 'border-emerald-700 bg-emerald-900/20' 
+                : 'border-emerald-300 bg-emerald-50'
+              : theme === 'dark' 
+                ? 'border-gray-700 bg-gray-800/50' 
+                : 'border-gray-300 bg-gray-100'
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className={`text-base font-bold ${
+                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
               }`}>
-                {isSaved ? 'DAY LOCKED' : 'READY TO LOCK DAY'}
-              </h3>
-              <p className={`text-sm ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                {isSaved 
-                  ? "Today's progress has been saved and locked. No further changes can be made." 
-                  : "Once locked, today's progress becomes permanent. Make sure all tasks are correctly marked."}
-              </p>
+                STREAK
+              </div>
+              <div className={`text-lg ${getTrendColor(streak > 0 ? 80 : 0)}`}>
+                {getTrendIcon(streak > 0 ? 80 : 0)}
+              </div>
             </div>
-            
-            <button
-              onClick={onSave}
-              disabled={isSaved}
-              className={`px-8 py-3 rounded-xl font-bold text-white transition-all duration-300 transform hover:scale-105 min-w-[140px] ${
-                isSaved 
-                  ? theme === 'dark'
-                    ? 'bg-gradient-to-r from-gray-700 to-gray-800 cursor-not-allowed shadow-inner border border-gray-600'
-                    : 'bg-gradient-to-r from-gray-400 to-gray-500 cursor-not-allowed shadow-inner'
-                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-lg hover:shadow-indigo-200 border border-indigo-700'
-              }`}
-            >
-              {isSaved ? 'LOCKED' : 'LOCK DAY'}
-            </button>
-          </div>
-          
-          {!isSaved && (
-            <div className={`mt-4 text-sm font-medium flex items-center ${
-              theme === 'dark' ? 'text-amber-400' : 'text-amber-600'
+            <div className={`text-3xl font-bold mb-1 ${
+              theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
-              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              This action cannot be undone
+              {streak}
             </div>
-          )}
+            <div className={`text-sm ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              {streak === 1 ? 'Active day' : 'Consecutive days'}
+            </div>
+          </div>
+
+          {/* Weekly */}
+          <div className={`rounded-xl p-5 border-2 ${
+            weeklyProgress >= 80 
+              ? theme === 'dark' 
+                ? 'border-emerald-700 bg-emerald-900/20' 
+                : 'border-emerald-300 bg-emerald-50'
+              : weeklyProgress >= 60 
+                ? theme === 'dark' 
+                  ? 'border-amber-700 bg-amber-900/20' 
+                  : 'border-amber-300 bg-amber-50'
+                : theme === 'dark' 
+                  ? 'border-rose-700 bg-rose-900/20' 
+                  : 'border-rose-300 bg-rose-50'
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className={`text-base font-bold ${
+                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                WEEKLY
+              </div>
+              <div className={`text-lg ${getTrendColor(weeklyProgress)}`}>
+                {getTrendIcon(weeklyProgress)}
+              </div>
+            </div>
+            <div className={`text-3xl font-bold mb-1 ${getProgressColor(weeklyProgress)}`}>
+              {weeklyProgress}%
+            </div>
+            <div className={`text-sm ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              7-day average
+            </div>
+          </div>
+
+          {/* Monthly */}
+          <div className={`rounded-xl p-5 border-2 ${
+            monthlyProgress >= 80 
+              ? theme === 'dark' 
+                ? 'border-emerald-700 bg-emerald-900/20' 
+                : 'border-emerald-300 bg-emerald-50'
+              : monthlyProgress >= 60 
+                ? theme === 'dark' 
+                  ? 'border-amber-700 bg-amber-900/20' 
+                  : 'border-amber-300 bg-amber-50'
+                : theme === 'dark' 
+                  ? 'border-rose-700 bg-rose-900/20' 
+                  : 'border-rose-300 bg-rose-50'
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className={`text-base font-bold ${
+                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                MONTHLY
+              </div>
+              <div className={`text-lg ${getTrendColor(monthlyProgress)}`}>
+                {getTrendIcon(monthlyProgress)}
+              </div>
+            </div>
+            <div className={`text-3xl font-bold mb-1 ${getProgressColor(monthlyProgress)}`}>
+              {monthlyProgress}%
+            </div>
+            <div className={`text-sm ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Current month
+            </div>
+          </div>
+
+          {/* Consistency */}
+          <div className={`rounded-xl p-5 border-2 ${
+            progress >= 80 
+              ? theme === 'dark' 
+                ? 'border-emerald-700 bg-emerald-900/20' 
+                : 'border-emerald-300 bg-emerald-50'
+              : progress >= 60 
+                ? theme === 'dark' 
+                  ? 'border-amber-700 bg-amber-900/20' 
+                  : 'border-amber-300 bg-amber-50'
+                : theme === 'dark' 
+                  ? 'border-rose-700 bg-rose-900/20' 
+                  : 'border-rose-300 bg-rose-50'
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className={`text-base font-bold ${
+                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                OVERALL
+              </div>
+              <div className={`text-lg ${getTrendColor(progress)}`}>
+                {getTrendIcon(progress)}
+              </div>
+            </div>
+            <div className={`text-3xl font-bold mb-1 ${getProgressColor(progress)}`}>
+              {progress}%
+            </div>
+            <div className={`text-sm ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              All-time average
+            </div>
+          </div>
         </div>
       </div>
     </div>
