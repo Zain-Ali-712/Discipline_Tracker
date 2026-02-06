@@ -56,14 +56,14 @@ export const initializeDailyTasks = (date: Date = new Date()): Task[] => {
 };
 
 export const calculateDailyProgress = (
-  tasks: Task[], 
-  outreachPitches?: { instagram: number; linkedin: number; twitter: number; facebook: number },
+  tasks: Task[],
+  outreachPitches?: Record<string, number>,
   projectHours?: number,
   advanceProjectHours?: number,
   customProjects: Project[] = []
 ): number => {
-  let totalWeight = TASK_WEIGHTS.PROJECT + TASK_WEIGHTS.ADVANCE_PROJECT + 
-                   TASK_WEIGHTS.LEARNING + TASK_WEIGHTS.SCROLLING;
+  let totalWeight = TASK_WEIGHTS.PROJECT + TASK_WEIGHTS.ADVANCE_PROJECT +
+    TASK_WEIGHTS.LEARNING + TASK_WEIGHTS.SCROLLING;
   let completedWeight = 0;
 
   // Calculate task weights (excluding outreach for weekends)
@@ -74,31 +74,31 @@ export const calculateDailyProgress = (
 
   // Calculate completed weight from fixed tasks
   tasks.forEach(task => {
-    switch(task.id) {
+    switch (task.id) {
       case 'outreach':
         if (!isWeekend && outreachPitches) {
-          const totalPitches = outreachPitches.instagram + outreachPitches.linkedin + 
-                              outreachPitches.twitter + outreachPitches.facebook;
+          const totalPitches = outreachPitches.instagram + outreachPitches.linkedin +
+            outreachPitches.twitter + outreachPitches.facebook;
           const pitchRatio = Math.min(totalPitches / 5, 1.4); // Cap at 140% for extra work
           completedWeight += task.weight * pitchRatio;
         }
         break;
-      
+
       case 'project':
         if (projectHours !== undefined) {
           const hourRatio = Math.min(projectHours / 2, 2); // 2 hours = 100%, cap at 200%
           completedWeight += task.weight * hourRatio;
         }
         break;
-      
+
       case 'advance-project':
         if (advanceProjectHours !== undefined) {
           // Fixed: 1 hour = 1/3 of weight, 2 hours = 2/3, 3 hours = full weight, cap at 133%
-          const hourRatio = Math.min(advanceProjectHours / 3, 1.33); 
+          const hourRatio = Math.min(advanceProjectHours / 3, 1.33);
           completedWeight += task.weight * hourRatio;
         }
         break;
-      
+
       default:
         if (task.completed) {
           completedWeight += task.weight;
@@ -109,11 +109,11 @@ export const calculateDailyProgress = (
   // Add custom project weight (only if no fixed project hours tracked today)
   const activeCustomProjects = customProjects.filter(p => !p.completed);
   const hasFixedProjectHours = projectHours !== undefined && projectHours > 0;
-  
+
   if (!hasFixedProjectHours && activeCustomProjects.length > 0) {
     // Distribute project weight among custom projects
     const projectWeightPerCustomProject = TASK_WEIGHTS.PROJECT / Math.max(activeCustomProjects.length, 1);
-    
+
     activeCustomProjects.forEach(project => {
       const totalHours = project.hoursLog.reduce((sum, log) => sum + log.hours, 0);
       const hourRatio = Math.min(totalHours / Math.max(project.estimatedHours, 1), 1);
@@ -134,7 +134,7 @@ export const calculateStreak = (history: DailyRecord[]): number => {
     .filter(record => record.progress > 0);
 
   let streak = 0;
-  
+
   for (const record of sorted) {
     if (record.progress >= 80) {
       streak++;
@@ -142,7 +142,7 @@ export const calculateStreak = (history: DailyRecord[]): number => {
       break;
     }
   }
-  
+
   return streak;
 };
 
@@ -150,17 +150,17 @@ export const calculateWeeklyProgress = (history: DailyRecord[]): number => {
   const uniqueHistory = history.filter((record, index, self) =>
     index === self.findIndex(r => r.date === record.date)
   );
-  
+
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-  
+
   const lastWeekRecords = uniqueHistory.filter(record => {
     const recordDate = new Date(record.date);
     return recordDate >= oneWeekAgo && recordDate <= new Date();
   });
-  
+
   if (lastWeekRecords.length === 0) return 0;
-  
+
   const total = lastWeekRecords.reduce((sum, record) => sum + record.progress, 0);
   return Math.round(total / lastWeekRecords.length);
 };
@@ -169,11 +169,11 @@ export const calculateMonthlyProgress = (history: DailyRecord[]): number => {
   const uniqueHistory = history.filter((record, index, self) =>
     index === self.findIndex(r => r.date === record.date)
   );
-  
+
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
-  
+
   const monthRecords = uniqueHistory.filter(record => {
     const recordDate = new Date(record.date);
     return (
@@ -181,9 +181,9 @@ export const calculateMonthlyProgress = (history: DailyRecord[]): number => {
       recordDate.getFullYear() === currentYear
     );
   });
-  
+
   if (monthRecords.length === 0) return 0;
-  
+
   const total = monthRecords.reduce((sum, record) => sum + record.progress, 0);
   return Math.round(total / monthRecords.length);
 };
@@ -192,9 +192,9 @@ export const calculateOverallProgress = (history: DailyRecord[]): number => {
   const uniqueHistory = history.filter((record, index, self) =>
     index === self.findIndex(r => r.date === record.date)
   );
-  
+
   if (uniqueHistory.length === 0) return 0;
-  
+
   const total = uniqueHistory.reduce((sum, record) => sum + record.progress, 0);
   return Math.round(total / uniqueHistory.length);
 };

@@ -29,12 +29,7 @@ export interface DailyRecord {
   tasks: Task[];
   isStreakDay: boolean;
   isSaved?: boolean;
-  outreachPitches?: {
-    instagram: number;
-    linkedin: number;
-    twitter: number;
-    facebook: number;
-  };
+  outreachPitches?: Record<string, number>;
   projectHours?: number;
   advanceProjectHours?: number;
   customProjectHours?: Record<string, number>;
