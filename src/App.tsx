@@ -174,12 +174,12 @@ const App: React.FC = () => {
     
     setOutreachPitches(updatedPitches);
     
-    // Update all-time counts (only when increasing, not when decreasing)
+    // Update all-time counts by the delta (handles adds and removes)
     const pitchChange = count - outreachPitches[platform];
-    if (pitchChange > 0) {
+    if (pitchChange !== 0) {
       const updatedAllTimePitches = {
         ...allTimePitches,
-        [platform]: allTimePitches[platform] + pitchChange
+        [platform]: Math.max(0, (allTimePitches[platform] || 0) + pitchChange)
       };
       setAllTimePitches(updatedAllTimePitches);
       saveData('allTimePitches', updatedAllTimePitches);

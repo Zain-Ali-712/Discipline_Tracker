@@ -1,4 +1,4 @@
-// src/components/OutreachDetails.tsx - Updated with all-time pitch counting
+// src/components/OutreachDetails.tsx - Updated with fixed pitch counting and improved UI
 import React from 'react';
 import { FiInstagram, FiLinkedin, FiTwitter, FiFacebook, FiPlus, FiMinus } from 'react-icons/fi';
 
@@ -68,6 +68,21 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
     }
   };
 
+  const handleAddPitch = (platform: string) => {
+    const currentCount = pitches[platform as keyof typeof pitches];
+    if (currentCount < 10) {
+      onUpdatePitches(platform, currentCount + 1);
+    }
+  };
+
+  const handleRemovePitch = (platform: string) => {
+    const currentCount = pitches[platform as keyof typeof pitches];
+    if (currentCount > 0) {
+      onUpdatePitches(platform, currentCount - 1);
+      // Do NOT decrement all-time pitches when removing daily count
+    }
+  };
+
   if (isExcluded) {
     return (
       <div className={`rounded-3xl border-2 shadow-xl transition-colors duration-300 ${
@@ -129,7 +144,7 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
             </p>
           </div>
           <div className="text-right">
-            <div className={`text-3xl font-bold ${
+            <div className={`text-4xl font-bold ${
               totalPitches >= targetPitches 
                 ? 'text-emerald-400' 
                 : totalPitches >= 3 
@@ -146,9 +161,25 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
           </div>
         </div>
         
-        {/* Progress Bar */}
-        <div className="mt-4">
-          <div className={`h-3 rounded-full overflow-hidden ${
+        {/* Progress Bar - Concise with larger font */}
+        <div className="mt-6">
+          <div className="flex justify-between items-center mb-2">
+            <div className={`text-lg font-bold ${
+              theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+            }`}>
+              Daily Progress
+            </div>
+            <div className={`text-2xl font-bold ${
+              totalPitches >= targetPitches 
+                ? 'text-emerald-400' 
+                : totalPitches >= 3 
+                  ? 'text-amber-400' 
+                  : 'text-rose-400'
+            }`}>
+              {((totalPitches / targetPitches) * 100).toFixed(0)}%
+            </div>
+          </div>
+          <div className={`h-4 rounded-full overflow-hidden ${
             theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'
           }`}>
             <div 
@@ -162,7 +193,7 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
               style={{ width: `${Math.min((totalPitches / targetPitches) * 100, 120)}%` }}
             ></div>
           </div>
-          <div className={`flex justify-between text-base mt-2 ${
+          <div className={`flex justify-between text-lg font-medium mt-2 ${
             theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
           }`}>
             <span>0</span>
@@ -236,10 +267,10 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
               </div>
               
               {/* Controls */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() => onUpdatePitches(platform, Math.max(0, count - 1))}
+                    onClick={() => handleRemovePitch(platform)}
                     disabled={isSaved || count <= 0}
                     className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                       isSaved || count <= 0
@@ -255,10 +286,10 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
                   </button>
                   
                   <button
-                    onClick={() => onUpdatePitches(platform, count + 1)}
-                    disabled={isSaved}
+                    onClick={() => handleAddPitch(platform)}
+                    disabled={isSaved || count >= 10}
                     className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      isSaved
+                      isSaved || count >= 10
                         ? theme === 'dark'
                           ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                           : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -278,21 +309,27 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
                 </div>
               </div>
               
-              {/* Progress indicator */}
+              {/* Progress indicator - Fixed to show color */}
               <div className="mt-3">
-                <div className={`h-1.5 rounded-full overflow-hidden ${
+                <div className={`h-2 rounded-full overflow-hidden ${
                   theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'
                 }`}>
                   <div 
-                    className={`h-full transition-all duration-500 ease-out ${getPlatformColor(platform)}`}
-                    style={{ width: `${(count / 5) * 100}%` }}
+                    className={`h-full transition-all duration-500 ease-out ${
+                      count >= 5 
+                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' 
+                        : count >= 3 
+                          ? 'bg-gradient-to-r from-amber-500 to-amber-400' 
+                          : 'bg-gradient-to-r from-rose-500 to-rose-400'
+                    }`}
+                    style={{ width: `${Math.min((count / 5) * 100, 100)}%` }}
                   ></div>
                 </div>
-                <div className={`flex justify-between text-xs mt-1 ${
+                <div className={`flex justify-between text-sm mt-1.5 ${
                   theme === 'dark' ? 'text-gray-500' : 'text-gray-600'
                 }`}>
                   <span>0</span>
-                  <span>{count}/5</span>
+                  <span className="font-medium">{count}/5</span>
                   <span>5</span>
                 </div>
               </div>
@@ -308,12 +345,12 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
         }`}>
           <div className="flex justify-between items-center mb-4">
             <div>
-              <div className={`text-lg font-bold ${
+              <div className={`text-xl font-bold ${
                 theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
               }`}>
                 Daily Summary
               </div>
-              <div className={`text-base mt-1 ${
+              <div className={`text-lg font-medium mt-1 ${
                 totalPitches >= targetPitches 
                   ? 'text-emerald-500' 
                   : totalPitches >= 3 
@@ -327,7 +364,7 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
             </div>
             
             <div className="text-right">
-              <div className={`text-2xl font-bold ${
+              <div className={`text-3xl font-bold ${
                 theme === 'dark' ? 'text-white' : 'text-gray-900'
               }`}>
                 {((totalPitches / targetPitches) * 100).toFixed(0)}%
@@ -340,39 +377,60 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
             </div>
           </div>
           
-          {/* Platform Breakdown */}
-          <div className={`grid grid-cols-4 gap-4 mt-4 pt-4 border-t ${
-            theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
-          }`}>
-            {Object.entries(pitches).map(([platform, count]) => (
-              <div key={platform} className="text-center">
-                <div className={`text-xs font-medium mb-1 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  {getPlatformName(platform).slice(0, 3)}
-                </div>
-                <div className={`text-lg font-bold ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                }`}>
-                  {count}
-                </div>
-                <div className={`text-xs ${
-                  theme === 'dark' ? 'text-gray-500' : 'text-gray-600'
-                }`}>
-                  {totalPitches > 0 ? `${((count / totalPitches) * 100).toFixed(0)}%` : '0%'}
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          {/* All-time total summary */}
+          {/* Concise Summary: single stacked bar and larger counts */}
           <div className={`mt-4 pt-4 border-t ${
             theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
           }`}>
-            <div className={`text-center text-sm font-medium ${
+            <div className="text-center mb-3">
+              <div className={`text-lg font-bold ${
+                theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+              }`}>
+                Daily Summary
+              </div>
+              <div className={`text-2xl font-semibold mt-1 ${
+                totalPitches >= targetPitches 
+                  ? 'text-emerald-500' 
+                  : totalPitches >= 3 
+                    ? 'text-amber-500' 
+                    : 'text-rose-500'
+              }`}>
+                {totalPitches} / {targetPitches} pitches
+              </div>
+            </div>
+
+            {/* Stacked bar showing per-platform contribution */}
+            <div className="w-full h-6 rounded-full overflow-hidden flex" role="progressbar" aria-valuenow={totalPitches} aria-valuemin={0} aria-valuemax={10}>
+              {Object.entries(pitches).map(([platform, count]) => {
+                const width = totalPitches > 0 ? `${(count / Math.max(1, totalPitches)) * 100}%` : '0%';
+                return (
+                  <div
+                    key={platform}
+                    className={`h-full ${getPlatformColor(platform)} transition-all`}
+                    style={{ width }}
+                  />
+                );
+              })}
+              {/* If there is any remaining gap to target, show a neutral segment */}
+              <div className={`h-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`} style={{ width: `${Math.max(0, ((targetPitches - Math.min(totalPitches, targetPitches)) / targetPitches) * 100)}%` }} />
+            </div>
+
+            {/* Small legend with larger fonts */}
+            <div className="flex justify-between items-center mt-3 text-sm">
+              {Object.entries(pitches).map(([platform, count]) => (
+                <div key={platform} className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded ${getPlatformColor(platform)}`} />
+                  <div className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                    {getPlatformName(platform)}: <span className="font-bold text-xl">{count}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* All-time total summary */}
+            <div className={`text-center text-lg font-medium mt-3 ${
               theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              All-time Total Pitches: <span className={`font-bold ${
+              All-time Total Pitches: <span className={`font-bold text-2xl ${
                 theme === 'dark' ? 'text-white' : 'text-gray-900'
               }`}>
                 {Object.values(allTimePitches).reduce((a, b) => a + b, 0)}

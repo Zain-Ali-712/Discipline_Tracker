@@ -1,4 +1,4 @@
-// src/components/Dashboard.tsx - Updated with visible bars in graph
+// src/components/Dashboard.tsx - Updated with weekly chart labels
 import React from 'react';
 import { FiTrendingUp, FiTrendingDown } from 'react-icons/fi';
 import { DailyRecord } from '../types';
@@ -151,7 +151,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
 
-        {/* 7-Day Progress Chart - Updated with more visible bars */}
+        {/* 7-Day Progress Chart - Filled Area Chart */}
         <div className={`mb-8 p-5 rounded-2xl border ${
           theme === 'dark' 
             ? 'bg-gray-800/50 border-gray-700' 
@@ -160,12 +160,11 @@ const Dashboard: React.FC<DashboardProps> = ({
           <h3 className={`text-xl font-bold mb-4 ${
             theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
           }`}>
-            7-Day Progress Trend
+            Weekly Progress Chart
           </h3>
-          <div className="h-52">
-            {/* Y-axis labels and chart container */}
+          <div className="h-48">
+            {/* Y-axis labels */}
             <div className="flex h-full">
-              {/* Y-axis labels */}
               <div className={`flex flex-col justify-between mr-3 text-right ${
                 theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
               }`}>
@@ -187,105 +186,104 @@ const Dashboard: React.FC<DashboardProps> = ({
                   ))}
                 </div>
                 
-                {/* Bars for each day - MORE VISIBLE BARS */}
-                <div className="absolute inset-0 flex items-end justify-between px-1">
-                  {chartData.map((data, index) => {
-                    // Calculate bar height - ensure even low values are visible
-                    const barHeight = Math.max(
-                      (data.progress / 100) * 90, // Use 90% of available height
-                      data.progress > 0 ? 8 : 0 // Minimum height for non-zero values
-                    );
+                {/* Filled area chart */}
+                <div className="absolute inset-0">
+                  {/* Create SVG path for filled area */}
+                  <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+                    {/* Background fill area */}
+                    <defs>
+                      <linearGradient id="progressGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor={progress >= 80 ? "#10B981" : progress >= 60 ? "#F59E0B" : "#EF4444"} stopOpacity="0.3" />
+                        <stop offset="100%" stopColor={progress >= 80 ? "#10B981" : progress >= 60 ? "#F59E0B" : "#EF4444"} stopOpacity="0.1" />
+                      </linearGradient>
+                    </defs>
                     
-                    return (
-                      <div 
-                        key={data.date} 
-                        className="flex flex-col items-center justify-end"
-                        style={{ width: `${100 / chartData.length}%`, height: '100%' }}
-                      >
-                        {/* Progress bar with value label */}
-                        <div className="relative group w-full flex flex-col items-center">
-                          {/* Value label above bar */}
-                          <div className="mb-1">
-                            <div className={`text-xs font-bold ${
-                              theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                            }`}>
-                              {data.progress}%
-                            </div>
-                          </div>
-                          
-                          {/* Actual progress bar - WIDER AND MORE VISIBLE */}
-                          <div className="w-10/12 max-w-16 mx-auto relative">
-                            {/* Bar background with more visibility for low values */}
-                            <div 
-                              className={`w-full rounded-t-lg relative overflow-hidden ${
-                                theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-300/50'
-                              }`}
-                              style={{ height: '100%', minHeight: '60px' }}
-                            >
-                              {/* Progress fill - ensure it's always visible */}
-                              <div
-                                className={`w-full rounded-t-lg transition-all duration-700 absolute bottom-0 ${
-                                  data.progress >= 80 
-                                    ? 'bg-gradient-to-t from-emerald-500 to-emerald-400' 
-                                    : data.progress >= 60 
-                                      ? 'bg-gradient-to-t from-amber-500 to-amber-400' 
-                                      : data.progress >= 1
-                                        ? 'bg-gradient-to-t from-rose-500 to-rose-400'
-                                        : 'bg-transparent'
-                                }`}
-                                style={{ 
-                                  height: `${barHeight}%`,
-                                  minHeight: data.progress > 0 ? '6px' : '0px'
-                                }}
-                              >
-                                {/* Bar shine effect */}
-                                {data.progress > 0 && (
-                                  <div className={`absolute top-0 left-0 right-0 h-1/3 rounded-t-lg ${
-                                    theme === 'dark' ? 'bg-white/20' : 'bg-white/40'
-                                  }`}></div>
-                                )}
-                              </div>
-                            </div>
+                    {/* Create path for area fill */}
+                    {chartData.length > 0 && (
+                      <>
+                        {/* Area fill */}
+                        <path
+                          d={(() => {
+                            const points = chartData.map((data, index) => {
+                              const x = (index / (chartData.length - 1)) * 100;
+                              const y = 100 - (data.progress / maxProgress) * 100;
+                              return `${x},${y}`;
+                            }).join(' ');
                             
-                            {/* Bar outline - always visible */}
-                            <div className={`absolute inset-0 rounded-t-lg border ${
-                              theme === 'dark' ? 'border-gray-600/50' : 'border-gray-400/50'
-                            }`}></div>
-                          </div>
-                          
-                          {/* Day label */}
-                          <div className="mt-2 text-center w-full">
-                            <div className={`text-xs font-medium ${
-                              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
-                              {data.displayDate}
-                            </div>
-                            <div className={`text-xs ${
-                              theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
-                            }`}>
-                              {data.fullDate}
-                            </div>
-                          </div>
-                          
-                          {/* Hover tooltip */}
-                          <div className={`absolute -top-12 left-1/2 transform -translate-x-1/2 px-2 py-1 rounded text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity ${
-                            theme === 'dark' 
-                              ? 'bg-gray-800 text-gray-300 border border-gray-700' 
-                              : 'bg-gray-900 text-white'
-                          }`}>
-                            {data.displayDate}: {data.progress}% progress
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                            return `M 0,100 L ${points} L 100,100 Z`;
+                          })()}
+                          fill="url(#progressGradient)"
+                          stroke="none"
+                        />
+                        
+                        {/* Line */}
+                        <path
+                          d={(() => {
+                            const points = chartData.map((data, index) => {
+                              const x = (index / (chartData.length - 1)) * 100;
+                              const y = 100 - (data.progress / maxProgress) * 100;
+                              return `${x},${y}`;
+                            }).join(' ');
+                            
+                            return `M ${points}`;
+                          })()}
+                          fill="none"
+                          stroke={progress >= 80 ? "#10B981" : progress >= 60 ? "#F59E0B" : "#EF4444"}
+                          strokeWidth="0.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        
+                        {/* Data points */}
+                        {chartData.map((data, index) => {
+                          const x = (index / (chartData.length - 1)) * 100;
+                          const y = 100 - (data.progress / maxProgress) * 100;
+
+                          return (
+                            <circle
+                              key={data.date}
+                              cx={x}
+                              cy={y}
+                              r="1"
+                              fill={data.progress >= 80 ? "#10B981" : data.progress >= 60 ? "#F59E0B" : "#EF4444"}
+                              stroke={theme === 'dark' ? "#1F2937" : "#FFFFFF"}
+                              strokeWidth="0.5"
+                            />
+                          );
+                        })}
+                      </>
+                    )}
+                  </svg>
                 </div>
               </div>
+            </div>
+            
+            {/* X-axis labels */}
+            <div className={`flex justify-between mt-2 px-0  ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              {chartData.map((data, index) => (
+                <div key={data.date} className="text-center" style={{ width: `${100 / chartData.length}%` }}>
+                  <div className="text-s font-medium">
+                    {data.displayDate}
+                  </div>
+                  <div className="text-s">
+                    {data.fullDate}
+                  </div>
+                  <div className={`text-s font-bold mt-1 ${
+                    data.progress >= 80 ? 'text-emerald-500' : 
+                    data.progress >= 60 ? 'text-amber-500' : 
+                    'text-rose-500'
+                  }`}>
+                    {data.progress}%
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
           
           {/* Summary stats below chart */}
-          <div className={`grid grid-cols-3 gap-4 mt-8 pt-4 border-t ${
+          <div className={`grid grid-cols-3 gap-4 mt-24 pt-4 border-t ${
             theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
           }`}>
             <div className="text-center">
