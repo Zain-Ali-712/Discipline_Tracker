@@ -1,6 +1,6 @@
 // src/components/OutreachDetails.tsx - Updated with fixed pitch counting and improved UI
 import React from 'react';
-import { FiInstagram, FiLinkedin, FiTwitter, FiFacebook, FiPlus, FiMinus } from 'react-icons/fi';
+import { FiInstagram, FiLinkedin, FiTwitter, FiFacebook, FiSearch, FiPlus, FiMinus } from 'react-icons/fi';
 
 interface OutreachDetailsProps {
   pitches: Record<string, number>;
@@ -21,10 +21,14 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
 }) => {
   const isWeekend = () => {
     const day = new Date(date).getDay();
-    return day === 0;
+    return day === 0 || day === 6; // Fixed consistency: checking both Sat/Sun as requested
   };
 
-  const totalPitches = pitches.instagram + pitches.linkedin + pitches.twitter + pitches.facebook;
+  // Safe arithmetic in case new platforms are missing from old state
+  const totalPitches = (pitches.instagram || 0) + (pitches.linkedin || 0) +
+    (pitches.twitter || 0) + (pitches.facebook || 0) +
+    (pitches['google-search'] || 0);
+
   const targetPitches = 5;
   const isExcluded = isWeekend();
 
@@ -34,6 +38,7 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
       case 'linkedin': return theme === 'dark' ? 'from-blue-500 to-blue-700' : 'from-blue-400 to-blue-600';
       case 'twitter': return theme === 'dark' ? 'from-sky-500 to-blue-500' : 'from-sky-400 to-blue-400';
       case 'facebook': return theme === 'dark' ? 'from-blue-600 to-blue-800' : 'from-blue-500 to-blue-700';
+      case 'google-search': return theme === 'dark' ? 'from-red-500 to-yellow-500' : 'from-red-400 to-yellow-400';
       default: return theme === 'dark' ? 'from-gray-500 to-gray-700' : 'from-gray-400 to-gray-600';
     }
   };
@@ -44,6 +49,7 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
       case 'linkedin': return <FiLinkedin className="w-6 h-6" />;
       case 'twitter': return <FiTwitter className="w-6 h-6" />;
       case 'facebook': return <FiFacebook className="w-6 h-6" />;
+      case 'google-search': return <FiSearch className="w-6 h-6" />;
       default: return <FiPlus className="w-6 h-6" />;
     }
   };
@@ -54,6 +60,7 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
       case 'linkedin': return 'LinkedIn';
       case 'twitter': return 'Twitter';
       case 'facebook': return 'Facebook';
+      case 'google-search': return 'Google Search';
       default: return platform;
     }
   };
@@ -76,12 +83,12 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
   if (isExcluded) {
     return (
       <div className={`rounded-3xl border-2 shadow-xl transition-colors duration-300 ${theme === 'dark'
-          ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700'
-          : 'bg-gradient-to-br from-white to-gray-50 border-gray-300'
+        ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700'
+        : 'bg-gradient-to-br from-white to-gray-50 border-gray-300'
         }`}>
         <div className={`p-6 border-b ${theme === 'dark'
-            ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white border-gray-700'
-            : 'bg-gradient-to-r from-gray-700 to-gray-800 text-white border-gray-200'
+          ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white border-gray-700'
+          : 'bg-gradient-to-r from-gray-700 to-gray-800 text-white border-gray-200'
           }`}>
           <h3 className="text-xl font-bold">OUTREACH PITCHES</h3>
           <p className={`text-lg mt-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-300'
@@ -108,13 +115,13 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
 
   return (
     <div className={`rounded-3xl border-2 shadow-xl transition-colors duration-300 ${theme === 'dark'
-        ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700'
-        : 'bg-gradient-to-br from-white to-gray-50 border-gray-300'
+      ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700'
+      : 'bg-gradient-to-br from-white to-gray-50 border-gray-300'
       }`}>
       {/* Header */}
       <div className={`p-6 border-b ${theme === 'dark'
-          ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white border-gray-700'
-          : 'bg-gradient-to-r from-gray-700 to-gray-800 text-white border-gray-200'
+        ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white border-gray-700'
+        : 'bg-gradient-to-r from-gray-700 to-gray-800 text-white border-gray-200'
         }`}>
         <div className="flex justify-between items-center">
           <div>
@@ -126,10 +133,10 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
           </div>
           <div className="text-right">
             <div className={`text-4xl font-bold ${totalPitches >= targetPitches
-                ? 'text-emerald-400'
-                : totalPitches >= 3
-                  ? 'text-amber-400'
-                  : 'text-rose-400'
+              ? 'text-emerald-400'
+              : totalPitches >= 3
+                ? 'text-amber-400'
+                : 'text-rose-400'
               }`}>
               {totalPitches}/5
             </div>
@@ -148,10 +155,10 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
               Daily Progress
             </div>
             <div className={`text-2xl font-bold ${totalPitches >= targetPitches
-                ? 'text-emerald-400'
-                : totalPitches >= 3
-                  ? 'text-amber-400'
-                  : 'text-rose-400'
+              ? 'text-emerald-400'
+              : totalPitches >= 3
+                ? 'text-amber-400'
+                : 'text-rose-400'
               }`}>
               {((totalPitches / targetPitches) * 100).toFixed(0)}%
             </div>
@@ -160,10 +167,10 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
             }`}>
             <div
               className={`h-full transition-all duration-700 ease-out ${totalPitches >= targetPitches
-                  ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
-                  : totalPitches >= 3
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-400'
-                    : 'bg-gradient-to-r from-rose-500 to-rose-400'
+                ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
+                : totalPitches >= 3
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-400'
+                  : 'bg-gradient-to-r from-rose-500 to-rose-400'
                 }`}
               style={{ width: `${Math.min((totalPitches / targetPitches) * 100, 120)}%` }}
             ></div>
@@ -184,8 +191,8 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
             <div
               key={platform}
               className={`p-4 rounded-xl border-2 ${theme === 'dark'
-                  ? 'bg-gray-800/50 border-gray-700 hover:border-gray-600'
-                  : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                ? 'bg-gray-800/50 border-gray-700 hover:border-gray-600'
+                : 'bg-gray-50 border-gray-200 hover:border-gray-300'
                 }`}
             >
               <div className="flex items-center justify-between mb-3">
@@ -239,12 +246,12 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
                     onClick={() => handleRemovePitch(platform)}
                     disabled={isSaved || count <= 0}
                     className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSaved || count <= 0
-                        ? theme === 'dark'
-                          ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        : theme === 'dark'
-                          ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                          : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      ? theme === 'dark'
+                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : theme === 'dark'
+                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                       }`}
                   >
                     <FiMinus className="w-4 h-4" />
@@ -254,12 +261,12 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
                     onClick={() => handleAddPitch(platform)}
                     disabled={isSaved || count >= 10}
                     className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSaved || count >= 10
-                        ? theme === 'dark'
-                          ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        : theme === 'dark'
-                          ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                          : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      ? theme === 'dark'
+                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : theme === 'dark'
+                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                       }`}
                   >
                     <FiPlus className="w-4 h-4" />
@@ -278,10 +285,10 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
                   }`}>
                   <div
                     className={`h-full transition-all duration-500 ease-out ${count >= 5
-                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
-                        : count >= 3
-                          ? 'bg-gradient-to-r from-amber-500 to-amber-400'
-                          : 'bg-gradient-to-r from-rose-500 to-rose-400'
+                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
+                      : count >= 3
+                        ? 'bg-gradient-to-r from-amber-500 to-amber-400'
+                        : 'bg-gradient-to-r from-rose-500 to-rose-400'
                       }`}
                     style={{ width: `${Math.min((count / 5) * 100, 100)}%` }}
                   ></div>
@@ -299,8 +306,8 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
 
         {/* Summary Card */}
         <div className={`p-5 rounded-xl border-2 ${theme === 'dark'
-            ? 'bg-gradient-to-r from-gray-800 to-gray-900 border-gray-700'
-            : 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200'
+          ? 'bg-gradient-to-r from-gray-800 to-gray-900 border-gray-700'
+          : 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200'
           }`}>
           <div className="flex justify-between items-center mb-4">
             <div>
@@ -309,10 +316,10 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
                 Daily Summary
               </div>
               <div className={`text-lg font-medium mt-1 ${totalPitches >= targetPitches
-                  ? 'text-emerald-500'
-                  : totalPitches >= 3
-                    ? 'text-amber-500'
-                    : 'text-rose-500'
+                ? 'text-emerald-500'
+                : totalPitches >= 3
+                  ? 'text-amber-500'
+                  : 'text-rose-500'
                 }`}>
                 {totalPitches >= targetPitches
                   ? `✅ Great job! ${totalPitches} pitches sent`
@@ -341,10 +348,10 @@ const OutreachDetails: React.FC<OutreachDetailsProps> = ({
                 Daily Summary
               </div>
               <div className={`text-2xl font-semibold mt-1 ${totalPitches >= targetPitches
-                  ? 'text-emerald-500'
-                  : totalPitches >= 3
-                    ? 'text-amber-500'
-                    : 'text-rose-500'
+                ? 'text-emerald-500'
+                : totalPitches >= 3
+                  ? 'text-amber-500'
+                  : 'text-rose-500'
                 }`}>
                 {totalPitches} / {targetPitches} pitches
               </div>

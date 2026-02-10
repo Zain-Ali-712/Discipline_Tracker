@@ -1,11 +1,12 @@
-// src/App.tsx - Updated to create Project with start date
+// src/components/AppContent.tsx - Updated to create Project with start date
+'use client';
 import React, { useState, useEffect } from 'react';
-import Dashboard from './components/Dashboard';
-import HistoryTable from './components/HistoryTable';
-import TaskManager from './components/TaskManager';
-import OutreachDetails from './components/OutreachDetails';
-import ProjectManager from './components/ProjectManager';
-import { Task, DailyRecord, Project } from './types';
+import Dashboard from './Dashboard';
+import HistoryTable from './HistoryTable';
+import TaskManager from './TaskManager';
+import OutreachDetails from './OutreachDetails';
+import ProjectManager from './ProjectManager';
+import { Task, DailyRecord, Project } from '../types';
 import {
   calculateDailyProgress,
   initializeDailyTasks,
@@ -13,30 +14,81 @@ import {
   calculateWeeklyProgress,
   calculateMonthlyProgress,
   calculateOverallProgress
-} from './utils/calculations';
-import { loadData, saveData, loadTheme, saveTheme } from './utils/storage';
+} from '../utils/calculations';
+import { loadData, saveData, loadTheme, saveTheme, loadFromLocalStorage, saveToLocalStorage } from '../utils/storage';
+import { createBackup, downloadBackup, migrateToMongoDB, isMigrated } from '../utils/dataMigration';
 import { FiSun, FiMoon } from 'react-icons/fi';
 
 const App: React.FC = () => {
+  const [isClient, setIsClient] = useState(false);
+  const [migrationStatus, setMigrationStatus] = useState<'idle' | 'migrating' | 'success' | 'error'>('idle');
+  const [migrationMessage, setMigrationMessage] = useState('');
+
+  useEffect(() => {
+    setIsClient(true);
+    setCurrentDate(new Date().toISOString().split('T')[0]);
+  }, []);
+
+  // Migration effect - runs once on mount
+  useEffect(() => {
+    if (!isClient) return;
+
+    const performMigration = async () => {
+      // Check if migration is needed
+      if (isMigrated()) {
+        console.log('Data already migrated to MongoDB');
+        setMigrationStatus('success');
+        setMigrationMessage('Data already migrated');
+        return;
+      }
+
+      setMigrationStatus('migrating');
+      setMigrationMessage('Creating backup...');
+
+      // Create backup first
+      const backup = createBackup();
+      if (!backup) {
+        console.error('Failed to create backup');
+        return;
+      }
+
+      console.log('Created backup of localStorage data');
+      setMigrationMessage('Migrating to MongoDB...');
+
+      // Attempt migration
+      const migrationSuccess = await migrateToMongoDB(backup);
+      if (migrationSuccess) {
+        console.log('Successfully migrated data to MongoDB');
+        console.log('Your localStorage data remains as a backup');
+        setMigrationStatus('success');
+        setMigrationMessage('Migration successful!');
+      } else {
+        console.error('Migration failed - data remains in localStorage');
+        setMigrationStatus('error');
+        setMigrationMessage('Migration failed. Data is safe in localStorage.');
+      }
+    };
+
+    performMigration();
+  }, [isClient]);
+
   const [history, setHistory] = useState<DailyRecord[]>(() => {
-    return loadData<DailyRecord[]>('history') || [];
+    return loadFromLocalStorage<DailyRecord[]>('history') || [];
   });
 
-  const [currentDate, setCurrentDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
+  const [currentDate, setCurrentDate] = useState<string>(''); // Initialize empty for hydration fix
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return loadTheme() || 'dark';
   });
 
   const [projects, setProjects] = useState<Project[]>(() => {
-    return loadData<Project[]>('projects') || [];
+    return loadFromLocalStorage<Project[]>('projects') || [];
   });
 
   // Load all-time pitch counts from storage
   const [allTimePitches, setAllTimePitches] = useState<Record<string, number>>(() => {
-    return loadData<Record<string, number>>('allTimePitches') || {
+    return loadFromLocalStorage<Record<string, number>>('allTimePitches') || {
       instagram: 0,
       linkedin: 0,
       twitter: 0,
@@ -45,36 +97,24 @@ const App: React.FC = () => {
   });
 
   const currentDayRecord = history.find(record => record.date === currentDate);
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    if (currentDayRecord) {
-      return currentDayRecord.tasks;
-    }
-    return initializeDailyTasks(new Date(currentDate));
+  // Current Day State
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isSaved, setIsSaved] = useState(false);
+  const [outreachPitches, setOutreachPitches] = useState<Record<string, number>>({
+    instagram: 0,
+    linkedin: 0,
+    twitter: 0,
+    facebook: 0,
+    'google-search': 0
   });
-
-  const [isSaved, setIsSaved] = useState<boolean>(() => {
-    return currentDayRecord?.isSaved || false;
-  });
-
-  const [outreachPitches, setOutreachPitches] = useState<Record<string, number>>(() => {
-    return currentDayRecord?.outreachPitches || {
-      instagram: 0,
-      linkedin: 0,
-      twitter: 0,
-      facebook: 0
-    };
-  });
-
-  const [projectHours, setProjectHours] = useState<number>(() => {
-    return currentDayRecord?.projectHours || 0;
-  });
-
-  const [advanceProjectHours, setAdvanceProjectHours] = useState<number>(() => {
-    return currentDayRecord?.advanceProjectHours || 0;
-  });
+  const [projectHours, setProjectHours] = useState(0);
+  const [advanceProjectHours, setAdvanceProjectHours] = useState(0);
 
   // Load or initialize today's record
   useEffect(() => {
+    // Only run on client and when currentDate is set
+    if (!isClient || !currentDate) return;
+
     const todayRecord = history.find(record => record.date === currentDate);
     if (!todayRecord) {
       const newTasks = initializeDailyTasks(new Date(currentDate));
@@ -89,7 +129,8 @@ const App: React.FC = () => {
           instagram: 0,
           linkedin: 0,
           twitter: 0,
-          facebook: 0
+          facebook: 0,
+          'google-search': 0
         },
         projectHours: 0,
         advanceProjectHours: 0,
@@ -97,6 +138,7 @@ const App: React.FC = () => {
       };
       setHistory(prev => {
         const filtered = prev.filter(record => record.date !== currentDate);
+        // Ensure we don't have duplicates and add new record
         return [...filtered, newRecord];
       });
       setTasks(newTasks);
@@ -105,7 +147,8 @@ const App: React.FC = () => {
         instagram: 0,
         linkedin: 0,
         twitter: 0,
-        facebook: 0
+        facebook: 0,
+        'google-search': 0
       });
       setProjectHours(0);
       setAdvanceProjectHours(0);
@@ -116,12 +159,13 @@ const App: React.FC = () => {
         instagram: 0,
         linkedin: 0,
         twitter: 0,
-        facebook: 0
+        facebook: 0,
+        'google-search': 0
       });
       setProjectHours(todayRecord.projectHours || 0);
       setAdvanceProjectHours(todayRecord.advanceProjectHours || 0);
     }
-  }, [currentDate, history]);
+  }, [currentDate, history, isClient]);
 
   const toggleTask = (taskId: string) => {
     if (isSaved) return;
@@ -303,6 +347,7 @@ const App: React.FC = () => {
   const addProject = (project: Project) => {
     const newProjects = [...projects, project];
     setProjects(newProjects);
+    saveToLocalStorage('projects', newProjects);
     saveData('projects', newProjects);
   };
 
@@ -314,12 +359,14 @@ const App: React.FC = () => {
       return project;
     });
     setProjects(updatedProjects);
+    saveToLocalStorage('projects', updatedProjects);
     saveData('projects', updatedProjects);
   };
 
   const deleteProject = (projectId: string) => {
     const updatedProjects = projects.filter(project => project.id !== projectId);
     setProjects(updatedProjects);
+    saveToLocalStorage('projects', updatedProjects);
     saveData('projects', updatedProjects);
   };
 
@@ -418,6 +465,7 @@ const App: React.FC = () => {
 
     setHistory(uniqueHistory);
     setIsSaved(true);
+    saveToLocalStorage('history', uniqueHistory);
     saveData('history', uniqueHistory);
   };
 
@@ -465,6 +513,41 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-4">
+              {/* Migration Button */}
+              {migrationStatus !== 'success' && (
+                <button
+                  onClick={async () => {
+                    setMigrationStatus('migrating');
+                    setMigrationMessage('Starting migration...');
+                    const backup = createBackup();
+                    if (backup) {
+                      const success = await migrateToMongoDB(backup);
+                      if (success) {
+                        setMigrationStatus('success');
+                        setMigrationMessage('Migration complete!');
+                      } else {
+                        setMigrationStatus('error');
+                        setMigrationMessage('Migration failed');
+                      }
+                    }
+                  }}
+                  disabled={migrationStatus === 'migrating'}
+                  className={`p-3 rounded-xl transition-all duration-300 flex items-center gap-2 ${migrationStatus === 'migrating'
+                      ? 'bg-yellow-600 text-white cursor-wait'
+                      : migrationStatus === 'error'
+                        ? 'bg-red-600 text-white hover:bg-red-700'
+                        : theme === 'dark'
+                          ? 'bg-blue-600 text-white hover:bg-blue-700 border border-blue-500'
+                          : 'bg-blue-500 text-white hover:bg-blue-600 border border-blue-400'
+                    }`}
+                  title={migrationMessage || 'Migrate data to MongoDB'}
+                >
+                  <span className="text-base font-medium">
+                    {migrationStatus === 'migrating' ? '⏳ Migrating...' : '📤 Migrate to DB'}
+                  </span>
+                </button>
+              )}
+
               <button
                 onClick={toggleTheme}
                 className={`p-3 rounded-xl transition-all duration-300 flex items-center gap-2 ${theme === 'dark'
@@ -504,67 +587,76 @@ const App: React.FC = () => {
       </header>
 
       <main className="px-8 py-8">
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-          {/* Left Column - Dashboard & Outreach */}
-          <div className="xl:col-span-8 space-y-8">
-            <Dashboard
-              currentDate={currentDate}
-              progress={overallProgress}
-              streak={streak}
-              weeklyProgress={weeklyProgress}
-              monthlyProgress={monthlyProgress}
-              theme={theme}
-              history={history}
-            />
-
-            <OutreachDetails
-              pitches={outreachPitches}
-              allTimePitches={allTimePitches}
-              onUpdatePitches={updateOutreachPitches}
-              isSaved={isSaved}
-              theme={theme}
-              date={currentDate}
-            />
+        {!isClient || !currentDate ? (
+          <div className="flex items-center justify-center h-64">
+            <div className={`text-xl ${theme === 'dark' ? 'text-gray-400 animate-pulse' : 'text-gray-600 animate-pulse'}`}>
+              Loading...
+            </div>
           </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">{/* Left Column - Dashboard & Outreach */}
+              <div className="xl:col-span-8 space-y-8">
+                <Dashboard
+                  currentDate={currentDate}
+                  progress={overallProgress}
+                  streak={streak}
+                  weeklyProgress={weeklyProgress}
+                  monthlyProgress={monthlyProgress}
+                  theme={theme}
+                  history={history}
+                />
 
-          {/* Right Column - Tasks & Projects */}
-          <div className="xl:col-span-4 space-y-8">
-            <TaskManager
-              tasks={tasks}
-              onToggleTask={toggleTask}
-              progress={currentProgress}
-              date={currentDate}
-              isSaved={isSaved}
-              onSave={saveDayProgress}
-              theme={theme}
-              projectHours={projectHours}
-              advanceProjectHours={advanceProjectHours}
-              onUpdateProjectHours={updateProjectHours}
-              onUpdateAdvanceProjectHours={updateAdvanceProjectHours}
-            />
+                <OutreachDetails
+                  pitches={outreachPitches}
+                  allTimePitches={allTimePitches}
+                  onUpdatePitches={updateOutreachPitches}
+                  isSaved={isSaved}
+                  theme={theme}
+                  date={currentDate}
+                />
+              </div>
 
-            <ProjectManager
-              projects={projects}
-              onAddProject={addProject}
-              onUpdateProject={updateProject}
-              onDeleteProject={deleteProject}
-              onAddHours={addProjectHours}
-              currentDate={currentDate}
-              isSaved={isSaved}
-              theme={theme}
-            />
-          </div>
-        </div>
+              {/* Right Column - Tasks & Projects */}
+              <div className="xl:col-span-4 space-y-8">
+                <TaskManager
+                  tasks={tasks}
+                  onToggleTask={toggleTask}
+                  progress={currentProgress}
+                  date={currentDate}
+                  isSaved={isSaved}
+                  onSave={saveDayProgress}
+                  theme={theme}
+                  projectHours={projectHours}
+                  advanceProjectHours={advanceProjectHours}
+                  onUpdateProjectHours={updateProjectHours}
+                  onUpdateAdvanceProjectHours={updateAdvanceProjectHours}
+                />
 
-        {/* Full Width History Log */}
-        <div className="mt-8">
-          <HistoryTable
-            history={history}
-            currentDate={currentDate}
-            onDateSelect={setCurrentDate}
-            theme={theme}
-          />
-        </div>
+                <ProjectManager
+                  projects={projects}
+                  onAddProject={addProject}
+                  onUpdateProject={updateProject}
+                  onDeleteProject={deleteProject}
+                  onAddHours={addProjectHours}
+                  currentDate={currentDate}
+                  isSaved={isSaved}
+                  theme={theme}
+                />
+              </div>
+            </div>
+
+            {/* Full Width History Log */}
+            <div className="mt-8">
+              <HistoryTable
+                history={history}
+                currentDate={currentDate}
+                onDateSelect={setCurrentDate}
+                theme={theme}
+              />
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

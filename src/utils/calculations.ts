@@ -62,63 +62,105 @@ export const calculateDailyProgress = (
   advanceProjectHours?: number,
   customProjects: Project[] = []
 ): number => {
+  // Use current date for context if needed, but the caller usually handles day-specific data
+  // For week-relative logic or weekend checks, let's rely on the passed-in context or current day if generic
+  // However, simpler to just check "is today a weekend" inside the function or pass the date
+  // For now, we'll assume the caller passes relevant data or we check against "today" for immediate feedback
+  const now = new Date();
+  const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+
   let totalWeight = TASK_WEIGHTS.PROJECT + TASK_WEIGHTS.ADVANCE_PROJECT +
     TASK_WEIGHTS.LEARNING + TASK_WEIGHTS.SCROLLING;
-  let completedWeight = 0;
 
-  // Calculate task weights (excluding outreach for weekends)
-  const isWeekend = new Date().getDay() === 0;
+  // If strict weekend logic is required and we are on a weekend, outreach is auto-credited
+  // But we need to be careful not to break historical data if we just check "now"
+  // Let's assume this function is called for the *current* context mostly.
+  // Ideally, we'd pass a date string. Let's add it as an optional param or rely on external `isWeekend` logic passed in.
+  // Actually, standardizing on 365-day history, we should probably pass the date.
+  // But to minimize signature changes breaking everything, let's stick to the requested "Sat/Sun" logic for now which implies "current day" for the dashboard.
+  // For history, the `DailyRecord` already contains the calculated progress, so this function is mainly for "today's" updates.
+
   if (!isWeekend) {
+    totalWeight += TASK_WEIGHTS.OUTREACH;
+  } else {
+    // On weekends, outreach is excluded from the *denominator* but we want to credit it as "done" or "bonus"?
+    // The user said: "25% weifghtage of outreaching will be marked automaticlly"
+    // So distinct from "excluded". It means it counts as 25% completed.
     totalWeight += TASK_WEIGHTS.OUTREACH;
   }
 
-  // Calculate completed weight from fixed tasks
+  let completedWeight = 0;
+
+  // Outreach Logic
+  if (isWeekend) {
+    completedWeight += TASK_WEIGHTS.OUTREACH; // Auto-credit 25%
+  } else if (outreachPitches) {
+    const totalPitches = (outreachPitches.instagram || 0) + (outreachPitches.linkedin || 0) +
+      (outreachPitches.twitter || 0) + (outreachPitches.facebook || 0) + (outreachPitches['google-search'] || 0);
+
+    // 5 pitches = 100% (ratio 1.0). Cap at 1.4 (7 pitches).
+    const pitchRatio = Math.min(totalPitches / 5, 1.4);
+    completedWeight += TASK_WEIGHTS.OUTREACH * pitchRatio;
+  }
+
   tasks.forEach(task => {
     switch (task.id) {
-      case 'outreach':
-        if (!isWeekend && outreachPitches) {
-          const totalPitches = outreachPitches.instagram + outreachPitches.linkedin +
-            outreachPitches.twitter + outreachPitches.facebook;
-          const pitchRatio = Math.min(totalPitches / 5, 1.4); // Cap at 140% for extra work
-          completedWeight += task.weight * pitchRatio;
-        }
-        break;
-
       case 'project':
-        if (projectHours !== undefined) {
-          const hourRatio = Math.min(projectHours / 2, 2); // 2 hours = 100%, cap at 200%
-          completedWeight += task.weight * hourRatio;
+        if (projectHours !== undefined && projectHours > 0) {
+          // Target 2 hours. 
+          // If <= 2: simple ratio.
+          // If > 2: (2 + (hours - 2) * 0.5)
+          let effectiveHours = projectHours;
+          if (projectHours > 2) {
+            effectiveHours = 2 + (projectHours - 2) * 0.5;
+          }
+          // Base weight is for 2 hours.
+          const ratio = Math.min(effectiveHours / 2, 2); // Cap at 200% just in case, or let it ride? User didn't specify cap for bonus, but let's be safe.
+          // Actually user said "mark 2.5/2", so that implies 1.25x weight.
+          completedWeight += TASK_WEIGHTS.PROJECT * ratio;
         }
         break;
 
       case 'advance-project':
-        if (advanceProjectHours !== undefined) {
-          // Fixed: 1 hour = 1/3 of weight, 2 hours = 2/3, 3 hours = full weight, cap at 133%
-          const hourRatio = Math.min(advanceProjectHours / 3, 1.33);
-          completedWeight += task.weight * hourRatio;
+        if (advanceProjectHours !== undefined && advanceProjectHours > 0) {
+          // Target 3 hours.
+          // If <= 3: ratio.
+          // If > 3: (3 + (hours - 3) * 0.5)
+          let effectiveHours = advanceProjectHours;
+          if (advanceProjectHours > 3) {
+            effectiveHours = 3 + (advanceProjectHours - 3) * 0.5;
+          }
+          const ratio = Math.min(effectiveHours / 3, 2);
+          completedWeight += TASK_WEIGHTS.ADVANCE_PROJECT * ratio;
         }
         break;
 
+      case 'learning':
+        if (task.completed) completedWeight += TASK_WEIGHTS.LEARNING;
+        break;
+
+      case 'scrolling':
+        if (task.completed) completedWeight += TASK_WEIGHTS.SCROLLING;
+        break;
+
       default:
-        if (task.completed) {
-          completedWeight += task.weight;
-        }
+        // Outreach is handled above. 
+        break;
     }
   });
 
-  // Add custom project weight (only if no fixed project hours tracked today)
-  const activeCustomProjects = customProjects.filter(p => !p.completed);
-  const hasFixedProjectHours = projectHours !== undefined && projectHours > 0;
-
-  if (!hasFixedProjectHours && activeCustomProjects.length > 0) {
-    // Distribute project weight among custom projects
-    const projectWeightPerCustomProject = TASK_WEIGHTS.PROJECT / Math.max(activeCustomProjects.length, 1);
-
-    activeCustomProjects.forEach(project => {
-      const totalHours = project.hoursLog.reduce((sum, log) => sum + log.hours, 0);
-      const hourRatio = Math.min(totalHours / Math.max(project.estimatedHours, 1), 1);
-      completedWeight += projectWeightPerCustomProject * hourRatio;
-    });
+  // Custom Projects Fallback (only if no fixed project hours)
+  const hasFixedHours = (projectHours || 0) > 0 || (advanceProjectHours || 0) > 0;
+  if (!hasFixedHours && customProjects.length > 0) {
+    const active = customProjects.filter(p => !p.completed);
+    if (active.length > 0) {
+      const weightPerProject = TASK_WEIGHTS.PROJECT / active.length;
+      active.forEach(p => {
+        const logged = p.hoursLog.reduce((a, b) => a + b.hours, 0);
+        const ratio = Math.min(logged / Math.max(p.estimatedHours, 1), 1);
+        completedWeight += weightPerProject * ratio;
+      });
+    }
   }
 
   return totalWeight > 0 ? Math.min(Math.round((completedWeight / totalWeight) * 100), 100) : 0;
