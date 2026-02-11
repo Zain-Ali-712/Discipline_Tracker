@@ -64,7 +64,6 @@ export const calculateDailyProgress = (
 ): number => {
   // Use current date for context if needed, but the caller usually handles day-specific data
   // For week-relative logic or weekend checks, let's rely on the passed-in context or current day if generic
-  // However, simpler to just check "is today a weekend" inside the function or pass the date
   // For now, we'll assume the caller passes relevant data or we check against "today" for immediate feedback
   const now = new Date();
   const isWeekend = now.getDay() === 0 || now.getDay() === 6;
