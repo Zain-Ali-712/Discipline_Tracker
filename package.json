@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "mongoose": "^8.23.0",
-    "next": "latest",
+    "next": "^15.1.1",
     "react": "latest",
     "react-dom": "latest",
     "react-icon": "^1.0.0",
